@@ -1,0 +1,115 @@
+src:
+  mobile:
+    izakaya_navi:
+      lib:
+        main.dart:
+          content: "アプリのエントリーポイント、初期設定と全体のルーティング"
+          dependency:
+            - lib/screens/home_screen.dart
+            - lib/screens/auth_screen.dart
+            - lib/services/navigation_service.dart
+
+        screens:
+          home_screen.dart:
+            content: "ホーム画面の実装、検索バー、カテゴリボタン、おすすめ店舗リスト"
+            dependency:
+              - lib/widgets/search_bar.dart
+              - lib/widgets/category_buttons.dart
+              - lib/services/store_service.dart
+
+          search_screen.dart:
+            content: "詳細検索条件の設定と検索結果の表示"
+            dependency:
+              - lib/widgets/search_filter.dart
+              - lib/screens/search_result_screen.dart
+              - lib/services/search_service.dart
+
+          search_result_screen.dart:
+            content: "検索結果の店舗リストと地図表示"
+            dependency:
+              - lib/widgets/store_card.dart
+              - lib/screens/store_detail_screen.dart
+              - lib/services/location_service.dart
+
+          store_detail_screen.dart:
+            content: "店舗の詳細情報と関連アクション"
+            dependency:
+              - lib/widgets/store_gallery.dart
+              - lib/services/favorite_service.dart
+
+          auth_screen.dart:
+            content: "ユーザー認証、ログイン、登録、パスワードリセット"
+            dependency:
+              - lib/services/auth_service.dart
+              - lib/widgets/auth_form.dart
+
+        services:
+          auth_service.dart:
+            content: "Supabase認証機能の実装"
+            dependency:
+              - lib/backend/supabase/auth_functions.dart
+
+          store_service.dart:
+            content: "店舗情報の取得と管理"
+            dependency:
+              - lib/backend/supabase/store_queries.dart
+              - lib/services/location_service.dart
+
+          search_service.dart:
+            content: "検索機能の実装、条件フィルタリング"
+            dependency:
+              - lib/backend/supabase/search_queries.dart
+              - lib/services/location_service.dart
+
+          favorite_service.dart:
+            content: "お気に入り店舗の管理"
+            dependency:
+              - lib/backend/supabase/favorite_queries.dart
+
+          location_service.dart:
+            content: "位置情報の取得と処理"
+            dependency:
+              - lib/services/maps_service.dart
+
+        widgets:
+          search_bar.dart:
+            content: "検索バーのカスタムウィジェット"
+            dependency: []
+
+          category_buttons.dart:
+            content: "カテゴリボタンのグリッド"
+            dependency: []
+
+          search_filter.dart:
+            content: "検索フィルターのウィジェット"
+            dependency: []
+
+          store_card.dart:
+            content: "店舗情報を表示するカードウィジェット"
+            dependency: []
+
+          store_gallery.dart:
+            content: "店舗画像のスワイプ可能なギャラリー"
+            dependency: []
+
+          auth_form.dart:
+            content: "認証フォームのカスタムウィジェット"
+            dependency: []
+
+        backend:
+          supabase:
+            auth_functions.dart:
+              content: "Supabase認証関数"
+              dependency: []
+
+            store_queries.dart:
+              content: "店舗情報のデータベースクエリ"
+              dependency: []
+
+            search_queries.dart:
+              content: "検索クエリの実装"
+              dependency: []
+
+            favorite_queries.dart:
+              content: "お気に入り機能のクエリ"
+              dependency: []
