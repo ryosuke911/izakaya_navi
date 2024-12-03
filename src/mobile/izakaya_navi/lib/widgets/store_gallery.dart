@@ -1,11 +1,14 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../api/places_api.dart';
+import '../models/venue.dart';
 
 class StoreGallery extends StatefulWidget {
-  final List<String> images;
+  final List<Photo> photos;
 
   const StoreGallery({
     super.key,
-    required this.images,
+    required this.photos,
   });
 
   @override
@@ -13,73 +16,118 @@ class StoreGallery extends StatefulWidget {
 }
 
 class _StoreGalleryState extends State<StoreGallery> {
-  late PageController _pageController;
+  final PageController _pageController = PageController();
+  final PlacesApi _placesApi = PlacesApi();
+  final Map<String, Future<Image>> _photoCache = {};
   int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _loadPhotos();
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  Future<void> _loadPhotos() async {
+    for (final photo in widget.photos) {
+      if (!_photoCache.containsKey(photo.photoReference)) {
+        _photoCache[photo.photoReference] = _loadPhoto(photo.photoReference);
+      }
+    }
+  }
+
+  Future<Image> _loadPhoto(String photoReference) async {
+    try {
+      final bytes = await _placesApi.getPlacePhoto(photoReference);
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[200],
+            child: const Center(
+              child: Icon(
+                Icons.restaurant,
+                color: Colors.grey,
+                size: 48,
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      print('Error loading photo: $e');
+      return Image.memory(
+        Uint8List(0),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[200],
+            child: const Center(
+              child: Icon(
+                Icons.restaurant,
+                color: Colors.grey,
+                size: 48,
+              ),
+            ),
+          );
+        },
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
       children: [
-        // 画像表示エリア
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (int page) {
-              setState(() {
-                _currentPage = page;
-              });
-            },
-            itemCount: widget.images.isEmpty ? 1 : widget.images.length,
-            itemBuilder: (context, index) {
-              if (widget.images.isEmpty) {
-                return Container(
-                  color: Colors.grey[300],
-                  child: const Icon(
-                    Icons.restaurant,
-                    size: 48,
-                    color: Colors.grey,
-                  ),
-                );
-              }
-              return Image.network(
-                widget.images[index],
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
+        // 写真のページビュー
+        PageView.builder(
+          controller: _pageController,
+          itemCount: widget.photos.length,
+          onPageChanged: (index) {
+            setState(() {
+              _currentPage = index;
+            });
+          },
+          itemBuilder: (context, index) {
+            final photo = widget.photos[index];
+            return FutureBuilder<Image>(
+              future: _photoCache[photo.photoReference],
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+                
+                if (snapshot.hasError || !snapshot.hasData) {
                   return Container(
-                    color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.restaurant,
-                      size: 48,
-                      color: Colors.grey,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: Icon(
+                        Icons.restaurant,
+                        color: Colors.grey,
+                        size: 48,
+                      ),
                     ),
                   );
-                },
-              );
-            },
-          ),
+                }
+
+                return snapshot.data!;
+              },
+            );
+          },
         ),
 
-        // インジケーター
-        if (widget.images.length > 1)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+        // ページインジケーター
+        if (widget.photos.length > 1)
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                widget.images.length,
+                widget.photos.length,
                 (index) => Container(
                   width: 8,
                   height: 8,
@@ -87,8 +135,8 @@ class _StoreGalleryState extends State<StoreGallery> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _currentPage == index
-                        ? Colors.red
-                        : Colors.grey.withOpacity(0.5),
+                        ? Colors.white
+                        : Colors.white.withOpacity(0.5),
                   ),
                 ),
               ),
@@ -96,5 +144,11 @@ class _StoreGalleryState extends State<StoreGallery> {
           ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 }

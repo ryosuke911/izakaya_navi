@@ -1,95 +1,96 @@
 import 'package:flutter/material.dart';
 
-class CategoryButtons extends StatelessWidget {
-  const CategoryButtons({Key? key}) : super(key: key);
+class CategoryButtons extends StatefulWidget {
+  final Function(List<String>) onCategoriesChanged;
+
+  const CategoryButtons({
+    super.key,
+    required this.onCategoriesChanged,
+  });
+
+  @override
+  State<CategoryButtons> createState() => _CategoryButtonsState();
+}
+
+class _CategoryButtonsState extends State<CategoryButtons> {
+  final List<String> _selectedCategories = [];
+
+  // カテゴリーリスト
+  final List<Map<String, dynamic>> _categories = [
+    {'icon': Icons.local_fire_department, 'label': '焼き鳥'},
+    {'icon': Icons.set_meal, 'label': '鉄板焼き'},
+    {'icon': Icons.rice_bowl, 'label': '和食'},
+    {'icon': Icons.local_bar, 'label': '日本酒バー'},
+    {'icon': Icons.ramen_dining, 'label': '居酒屋'},
+    {'icon': Icons.dining, 'label': '創作料理'},
+    {'icon': Icons.restaurant, 'label': 'ダイニング'},
+    {'icon': Icons.more_horiz, 'label': 'その他'},
+  ];
+
+  void _toggleCategory(String category) {
+    setState(() {
+      if (_selectedCategories.contains(category)) {
+        _selectedCategories.remove(category);
+      } else {
+        _selectedCategories.add(category);
+      }
+      widget.onCategoriesChanged(_selectedCategories);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
+    return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3,
-      padding: const EdgeInsets.all(16.0),
-      mainAxisSpacing: 16.0,
-      crossAxisSpacing: 16.0,
-      children: [
-        _buildCategoryButton(
-          icon: Icons.restaurant,
-          label: '和食',
-          onTap: () {
-            // TODO: 和食カテゴリの処理
-          },
-        ),
-        _buildCategoryButton(
-          icon: Icons.local_bar,
-          label: '居酒屋',
-          onTap: () {
-            // TODO: 居酒屋カテゴリの処理
-          },
-        ),
-        _buildCategoryButton(
-          icon: Icons.ramen_dining,
-          label: 'ラーメン',
-          onTap: () {
-            // TODO: ラーメンカテゴリの処理
-          },
-        ),
-        _buildCategoryButton(
-          icon: Icons.set_meal,
-          label: '焼肉',
-          onTap: () {
-            // TODO: 焼肉カテゴリの処理
-          },
-        ),
-        _buildCategoryButton(
-          icon: Icons.lunch_dining,
-          label: '洋食',
-          onTap: () {
-            // TODO: 洋食カテゴリの処理
-          },
-        ),
-        _buildCategoryButton(
-          icon: Icons.more_horiz,
-          label: 'その他',
-          onTap: () {
-            // TODO: その他カテゴリの処理
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.white,
-      elevation: 2.0,
-      borderRadius: BorderRadius.circular(8.0),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 32.0,
-              color: Colors.orange[700],
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.8,
       ),
+      itemCount: _categories.length,
+      itemBuilder: (context, index) {
+        final category = _categories[index];
+        final isSelected = _selectedCategories.contains(category['label']);
+        
+        return GestureDetector(
+          onTap: () => _toggleCategory(category['label']),
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.red : Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  category['icon'],
+                  color: isSelected ? Colors.white : Colors.red,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                category['label'],
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

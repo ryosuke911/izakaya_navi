@@ -8,52 +8,35 @@ src:
             - lib/screens/home_screen.dart
             - lib/screens/auth_screen.dart
             - lib/services/navigation_service.dart
+            - lib/config/env.dart
 
-        screens:
-          home_screen.dart:
-            content: "ホーム画面の実装、検索バー、カテゴリボタン、おすすめ店舗リスト"
-            dependency:
-              - lib/widgets/search_bar.dart
-              - lib/widgets/category_buttons.dart
-              - lib/services/store_service.dart
+        config:
+          env.dart:
+            content: "環境変数の定義（APIキーなど）"
+            dependency: []
 
-          search_screen.dart:
-            content: "詳細検索条件の設定と検索結果の表示"
-            dependency:
-              - lib/widgets/search_filter.dart
-              - lib/screens/search_result_screen.dart
-              - lib/services/search_service.dart
-
-          search_result_screen.dart:
-            content: "検索結果の店舗リストと地図表示"
-            dependency:
-              - lib/widgets/store_card.dart
-              - lib/screens/store_detail_screen.dart
-              - lib/services/location_service.dart
-
-          store_detail_screen.dart:
-            content: "店舗の詳細情報と関連アクション"
-            dependency:
-              - lib/widgets/store_gallery.dart
-              - lib/services/favorite_service.dart
-
-          auth_screen.dart:
-            content: "ユーザー認証、ログイン、登録、パスワードリセット"
-            dependency:
-              - lib/services/auth_service.dart
-              - lib/widgets/auth_form.dart
+        models:
+          venue.dart:
+            content: "店舗情報のデータモデル"
+            dependency: []
+          
+          location.dart:
+            content: "位置情報のデータモデル"
+            dependency: []
 
         services:
+          store_service.dart:
+            content: "店舗情報の取得と管理（Foursquare Places API）"
+            dependency:
+              - lib/api/foursquare_api.dart
+              - lib/models/venue.dart
+              - lib/models/location.dart
+              - lib/config/env.dart
+
           auth_service.dart:
             content: "Supabase認証機能の実装"
             dependency:
               - lib/backend/supabase/auth_functions.dart
-
-          store_service.dart:
-            content: "店舗情報の取得と管理"
-            dependency:
-              - lib/backend/supabase/store_queries.dart
-              - lib/services/location_service.dart
 
           search_service.dart:
             content: "検索機能の実装、条件フィルタリング"
@@ -68,32 +51,108 @@ src:
 
           location_service.dart:
             content: "位置情報の取得と処理"
+            dependency: []
+
+        api:
+          places_api.dart:
+            content: "Google Places APIクライアント"
             dependency:
-              - lib/services/maps_service.dart
+              - lib/config/env.dart
+              - lib/models/venue.dart
+              - lib/models/location.dart
+              - package:http/http.dart
+            methods:
+              - searchByText: "テキスト検索で店舗を検索"
+              - getPlacePhoto: "店舗の写真を取得（photoReferenceを使用）"
+
+        screens:
+          home_screen.dart:
+            content: "ホーム画面の実装（エリア検索、詳細検索ボタン、現在地検索ボタン、おすすめ店舗リスト）"
+            dependency:
+              - lib/widgets/search_bar.dart
+              - lib/widgets/store_card.dart
+              - lib/screens/search_screen.dart
+              - lib/screens/search_result_screen.dart
+              - lib/services/store_service.dart
+              - lib/widgets/search_button.dart
+              - lib/models/venue.dart
+
+          search_screen.dart:
+            content: "詳細検索画面（キーワード検索、カテゴリ選択、詳細条件設定）"
+            dependency:
+              - lib/widgets/search_filter.dart
+              - lib/widgets/category_buttons.dart
+              - lib/screens/search_result_screen.dart
+              - lib/services/search_service.dart
+
+          search_result_screen.dart:
+            content: "検索結果の店舗リストと地図表示、表示切替機能（リスト表示がデフォルト）"
+            dependency:
+              - lib/widgets/store_card.dart
+              - lib/screens/store_detail_screen.dart
+              - lib/services/location_service.dart
+              - lib/models/venue.dart
+
+          store_detail_screen.dart:
+            content: |
+              "店舗の詳細情報表示画面
+              - 基本情報（店名、住所、電話番号、営業時間）
+              - 評価情報（評価点数、レビュー数）
+              - 写真ギャラリー（最大10枚）
+              - 店舗の特徴（価格帯、カテゴリー、設備など）
+              - お気に入り登録ボタン
+              - 外部リンク（公式サイト、Google Maps）"
+            dependency:
+              - lib/widgets/store_gallery.dart
+              - lib/models/venue.dart
+              - lib/models/location.dart
+              - package:url_launcher/url_launcher.dart
+
+          auth_screen.dart:
+            content: "ユーザー認証、ログイン、登録、パスワードリセット"
+            dependency:
+              - lib/services/auth_service.dart
+              - lib/widgets/auth_form.dart
 
         widgets:
           search_bar.dart:
-            content: "検索バーのカスタムウィジェット"
+            content: "エリア検索バーのカスタムウィジェット（テキスト入力対応）"
             dependency: []
 
           category_buttons.dart:
-            content: "カテゴリボタンのグリッド"
+            content: "カテゴリ選択ボタンのグリッド（複数選択可能）"
             dependency: []
 
           search_filter.dart:
-            content: "検索フィルターのウィジェット"
+            content: "詳細検索条件のフィルターウィジェット（人数、喫煙、飲み放題、個室、営業時間、予算）"
             dependency: []
 
           store_card.dart:
-            content: "店舗情報を表示するカードウィジェット"
-            dependency: []
+            content: "店舗情報を表示するカードウィジェット（店名、評価、カテゴリ、住所、写真）"
+            dependency:
+              - lib/models/venue.dart
+              - lib/api/places_api.dart
+              - lib/widgets/store_gallery.dart
+            methods:
+              - build: "カードウィジェットの構築"
+              - buildImage: "店舗写真の表示（StoreGalleryを使用）"
+              - buildInfo: "店舗情報の表示（店名、評価、カテゴリ）"
 
           store_gallery.dart:
-            content: "店舗画像のスワイプ可能なギャラリー"
-            dependency: []
+            content: "店舗画像のスワイプ可能なギャラリー（写真の取得と表示を担当）"
+            dependency:
+              - lib/api/places_api.dart
+              - lib/models/venue.dart
+            methods:
+              - loadPhotos: "写真の非同期読み込み"
+              - buildPhotoView: "写真表示用のウィジェットを構築"
 
           auth_form.dart:
             content: "認証フォームのカスタムウィジェット"
+            dependency: []
+
+          search_button.dart:
+            content: "詳細検索ボタンのカスタムウィジェット"
             dependency: []
 
         backend:
