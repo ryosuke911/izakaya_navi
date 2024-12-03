@@ -18,16 +18,25 @@ class _CategoryButtonsState extends State<CategoryButtons> {
   // カテゴリーリスト
   final List<Map<String, dynamic>> _categories = [
     {'icon': Icons.local_fire_department, 'label': '焼き鳥'},
-    {'icon': Icons.set_meal, 'label': '鉄板焼き'},
-    {'icon': Icons.rice_bowl, 'label': '和食'},
-    {'icon': Icons.local_bar, 'label': '日本酒バー'},
-    {'icon': Icons.ramen_dining, 'label': '居酒屋'},
-    {'icon': Icons.dining, 'label': '創作料理'},
-    {'icon': Icons.restaurant, 'label': 'ダイニング'},
-    {'icon': Icons.more_horiz, 'label': 'その他'},
+    {'icon': Icons.set_meal, 'label': '海鮮'},
+    {'icon': Icons.lunch_dining, 'label': '揚げ物'},
+    {'icon': Icons.soup_kitchen, 'label': 'おでん'},
+    {'icon': Icons.restaurant, 'label': '創作料理'},
+    {'icon': Icons.bakery_dining, 'label': '餃子'},
+    {'icon': Icons.edit, 'label': 'カテゴリ編集'},
   ];
 
   void _toggleCategory(String category) {
+    if (category == 'カテゴリ編集') {
+      // TODO: カテゴリ編集機能を実装
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('カテゴリ編集機能は準備中です'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     setState(() {
       if (_selectedCategories.contains(category)) {
         _selectedCategories.remove(category);

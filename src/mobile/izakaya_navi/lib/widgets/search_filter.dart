@@ -14,30 +14,53 @@ class SearchFilter extends StatefulWidget {
 
 class _SearchFilterState extends State<SearchFilter> {
   // フィルター状態
+  final TextEditingController _areaController = TextEditingController();
   int _selectedPersons = 2;
   String _smokingStatus = '指定なし';
   bool _hasNomihodai = false;
   bool _hasPrivateRoom = false;
   String _businessHours = '指定なし';
-  double _budget = 2000;
-
-  // 営業時間オプション
-  final List<String> _businessHoursOptions = [
-    '指定なし',
-    '今営業中',
-    '夜営業あり',
-    '深夜営業あり',
-  ];
+  RangeValues _budgetRange = const RangeValues(2000, 5000);
 
   void _updateFilters() {
     widget.onFilterChanged({
+      'area': _areaController.text,
       'persons': _selectedPersons,
       'smoking': _smokingStatus,
       'nomihodai': _hasNomihodai,
       'privateRoom': _hasPrivateRoom,
       'businessHours': _businessHours,
-      'budget': _budget,
+      'budgetMin': _budgetRange.start,
+      'budgetMax': _budgetRange.end,
     });
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required Widget child,
+    EdgeInsets? padding,
+  }) {
+    return Padding(
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(title),
+          const SizedBox(height: 8),
+          child,
+        ],
+      ),
+    );
   }
 
   @override
@@ -45,56 +68,54 @@ class _SearchFilterState extends State<SearchFilter> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // エリア・駅名入力
+        _buildSection(
+          title: 'エリア・駅名',
+          child: TextField(
+            controller: _areaController,
+            decoration: InputDecoration(
+              hintText: 'エリア・駅名を入力',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onChanged: (value) {
+              _updateFilters();
+            },
+          ),
+        ),
+
         // 人数選択
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              const Text(
-                '人数',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 16),
-              DropdownButton<int>(
-                value: _selectedPersons,
-                items: List.generate(8, (index) => index + 1)
-                    .map((int value) {
-                  return DropdownMenuItem<int>(
-                    value: value,
-                    child: Text('$value人'),
-                  );
-                }).toList(),
-                onChanged: (int? value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedPersons = value;
-                      _updateFilters();
-                    });
-                  }
-                },
-              ),
-            ],
+        _buildSection(
+          title: '人数',
+          child: DropdownButton<int>(
+            value: _selectedPersons,
+            items: List.generate(8, (index) => index + 1)
+                .map((int value) {
+              return DropdownMenuItem<int>(
+                value: value,
+                child: Text('$value人'),
+              );
+            }).toList(),
+            onChanged: (int? value) {
+              if (value != null) {
+                setState(() {
+                  _selectedPersons = value;
+                  _updateFilters();
+                });
+              }
+            },
           ),
         ),
 
         // 喫煙可否
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        _buildSection(
+          title: '喫煙',
+          child: Wrap(
+            spacing: 16,
             children: [
-              const Text(
-                '喫煙',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Radio<String>(
                     value: '指定なし',
@@ -107,7 +128,11 @@ class _SearchFilterState extends State<SearchFilter> {
                     },
                   ),
                   const Text('指定なし'),
-                  const SizedBox(width: 16),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Radio<String>(
                     value: '喫煙可',
                     groupValue: _smokingStatus,
@@ -119,7 +144,11 @@ class _SearchFilterState extends State<SearchFilter> {
                     },
                   ),
                   const Text('喫煙可'),
-                  const SizedBox(width: 16),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Radio<String>(
                     value: '禁煙',
                     groupValue: _smokingStatus,
@@ -136,22 +165,12 @@ class _SearchFilterState extends State<SearchFilter> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
 
-        // オプション（飲み放題、個室）
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+        // オプション
+        _buildSection(
+          title: 'オプション',
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'オプション',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
               CheckboxListTile(
                 title: const Text('飲み放題あり'),
                 value: _hasNomihodai,
@@ -177,68 +196,82 @@ class _SearchFilterState extends State<SearchFilter> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
 
         // 営業時間
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        _buildSection(
+          title: '営業時間',
+          child: Wrap(
+            spacing: 16,
             children: [
-              const Text(
-                '営業時間',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Radio<String>(
+                    value: '指定なし',
+                    groupValue: _businessHours,
+                    onChanged: (String? value) {
+                      setState(() {
+                        _businessHours = value!;
+                        _updateFilters();
+                      });
+                    },
+                  ),
+                  const Text('指定なし'),
+                ],
               ),
-              const SizedBox(height: 8),
-              DropdownButton<String>(
-                value: _businessHours,
-                isExpanded: true,
-                items: _businessHoursOptions.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (String? value) {
-                  if (value != null) {
-                    setState(() {
-                      _businessHours = value;
-                      _updateFilters();
-                    });
-                  }
-                },
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Radio<String>(
+                    value: '今営業中',
+                    groupValue: _businessHours,
+                    onChanged: (String? value) {
+                      setState(() {
+                        _businessHours = value!;
+                        _updateFilters();
+                      });
+                    },
+                  ),
+                  const Text('今営業中'),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Radio<String>(
+                    value: '深夜営業あり',
+                    groupValue: _businessHours,
+                    onChanged: (String? value) {
+                      setState(() {
+                        _businessHours = value!;
+                        _updateFilters();
+                      });
+                    },
+                  ),
+                  const Text('深夜営業あり'),
+                ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
 
         // 予算
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+        _buildSection(
+          title: '予算',
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '予算',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Slider(
-                value: _budget,
+              RangeSlider(
+                values: _budgetRange,
                 min: 2000,
                 max: 10000,
-                divisions: 4,
-                label: _budget >= 10000 ? '10,000円以上' : '${_budget.toInt()}円',
-                onChanged: (double value) {
+                divisions: 8,
+                labels: RangeLabels(
+                  _budgetRange.start >= 10000 ? '10,000円以上' : '${_budgetRange.start.toInt()}円',
+                  _budgetRange.end >= 10000 ? '10,000円以上' : '${_budgetRange.end.toInt()}円',
+                ),
+                onChanged: (RangeValues values) {
                   setState(() {
-                    _budget = value;
+                    _budgetRange = values;
                     _updateFilters();
                   });
                 },
@@ -247,10 +280,7 @@ class _SearchFilterState extends State<SearchFilter> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: const [
                   Text('2,000円'),
-                  Text('4,000円'),
-                  Text('6,000円'),
-                  Text('8,000円'),
-                  Text('10,000円〜'),
+                  Text('10,000円以上'),
                 ],
               ),
             ],
@@ -258,5 +288,11 @@ class _SearchFilterState extends State<SearchFilter> {
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _areaController.dispose();
+    super.dispose();
   }
 } 

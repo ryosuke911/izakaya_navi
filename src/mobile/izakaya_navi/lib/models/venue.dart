@@ -20,6 +20,7 @@ class Venue with _$Venue {
     String? formattedPhoneNumber,
     String? website,
     String? vicinity,
+    Map<String, dynamic>? additionalDetails,
   }) = _Venue;
 
   factory Venue.fromJson(Map<String, dynamic> json) => _$VenueFromJson(json);
@@ -58,6 +59,7 @@ class Venue with _$Venue {
         formattedPhoneNumber: json['formatted_phone_number'] as String?,
         website: json['website'] as String?,
         vicinity: json['vicinity'] as String?,
+        additionalDetails: json['additionalDetails'] as Map<String, dynamic>?,
       );
     } catch (e, stackTrace) {
       print('Error in Venue.fromPlacesApi: $e'); // デバッグ用
