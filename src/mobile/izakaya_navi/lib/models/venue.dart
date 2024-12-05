@@ -7,109 +7,56 @@ part 'venue.g.dart';
 @freezed
 class Venue with _$Venue {
   const factory Venue({
-    required String placeId,
+    required String id,
     required String name,
     required Location location,
-    @Default([]) List<String> types,
+    @Default([]) List<String> genres,
     double? rating,
-    int? userRatingsTotal,
-    int? priceLevel,
-    String? businessStatus,
-    OpeningHours? openingHours,
-    List<Photo>? photos,
-    String? formattedPhoneNumber,
-    String? website,
-    String? vicinity,
+    int? reviewCount,
+    String? budget,
+    String? access,
+    String? open,
+    String? close,
+    @Default([]) List<String> photos,
+    String? phoneNumber,
+    String? address,
     Map<String, dynamic>? additionalDetails,
   }) = _Venue;
 
   factory Venue.fromJson(Map<String, dynamic> json) => _$VenueFromJson(json);
 
-  factory Venue.fromPlacesApi(Map<String, dynamic> json) {
+  factory Venue.fromHotpepper(Map<String, dynamic> json) {
     try {
-      print('Converting place data to Venue: ${json['place_id']}'); // デバッグ用
       return Venue(
-        placeId: json['place_id'] as String? ?? '',
+        id: json['id'] as String? ?? '',
         name: json['name'] as String? ?? '',
-        location: Location.fromPlacesApi(json),
-        types: (json['types'] as List?)?.map((e) => e as String).toList() ?? [],
-        rating: (json['rating'] is int) 
-            ? (json['rating'] as int).toDouble() 
-            : json['rating'] as double?,
-        userRatingsTotal: json['user_ratings_total'] as int?,
-        priceLevel: json['price_level'] as int?,
-        businessStatus: json['business_status'] as String?,
-        openingHours: json['opening_hours'] != null
-            ? OpeningHours(
-                openNow: json['opening_hours']['open_now'] as bool? ?? false,
-                periods: null,
-                weekdayText: null,
-              )
-            : null,
-        photos: (json['photos'] as List?)?.map((photo) {
-          return Photo(
-            photoReference: photo['photo_reference'] as String? ?? '',
-            height: photo['height'] as int? ?? 0,
-            width: photo['width'] as int? ?? 0,
-            htmlAttributions: (photo['html_attributions'] as List?)
-                ?.map((e) => e as String)
-                .toList() ?? [],
-          );
-        }).toList(),
-        formattedPhoneNumber: json['formatted_phone_number'] as String?,
-        website: json['website'] as String?,
-        vicinity: json['vicinity'] as String?,
-        additionalDetails: json['additionalDetails'] as Map<String, dynamic>?,
+        location: Location(
+          latitude: double.tryParse(json['lat'] ?? '') ?? 0.0,
+          longitude: double.tryParse(json['lng'] ?? '') ?? 0.0,
+        ),
+        genres: [
+          if (json['genre']?['name'] != null)
+            json['genre']['name'] as String,
+          if (json['sub_genre']?['name'] != null)
+            json['sub_genre']['name'] as String,
+        ],
+        budget: json['budget']?['name'] as String?,
+        access: json['access'] as String?,
+        open: json['open'] as String?,
+        close: json['close'] as String?,
+        photos: [
+          if (json['photo']?['pc']?['l'] != null)
+            json['photo']['pc']['l'] as String,
+        ],
+        phoneNumber: json['tel'] as String?,
+        address: json['address'] as String?,
+        additionalDetails: json,
       );
     } catch (e, stackTrace) {
-      print('Error in Venue.fromPlacesApi: $e'); // デバッグ用
-      print('JSON data: $json'); // デバッグ用
-      print('Stack trace: $stackTrace'); // デバッグ用
+      print('Error in Venue.fromHotpepper: $e');
+      print('JSON data: $json');
+      print('Stack trace: $stackTrace');
       rethrow;
     }
   }
-}
-
-@freezed
-class OpeningHours with _$OpeningHours {
-  const factory OpeningHours({
-    required bool openNow,
-    List<Period>? periods,
-    List<String>? weekdayText,
-  }) = _OpeningHours;
-
-  factory OpeningHours.fromJson(Map<String, dynamic> json) =>
-      _$OpeningHoursFromJson(json);
-}
-
-@freezed
-class Period with _$Period {
-  const factory Period({
-    required DayTime open,
-    required DayTime close,
-  }) = _Period;
-
-  factory Period.fromJson(Map<String, dynamic> json) => _$PeriodFromJson(json);
-}
-
-@freezed
-class DayTime with _$DayTime {
-  const factory DayTime({
-    required int day,
-    required String time,
-  }) = _DayTime;
-
-  factory DayTime.fromJson(Map<String, dynamic> json) => _$DayTimeFromJson(json);
-}
-
-@freezed
-class Photo with _$Photo {
-  const factory Photo({
-    required String photoReference,
-    required int height,
-    required int width,
-    List<String>? htmlAttributions,
-  }) = _Photo;
-
-  factory Photo.fromJson(Map<String, dynamic> json) => _$PhotoFromJson(json);
 } 

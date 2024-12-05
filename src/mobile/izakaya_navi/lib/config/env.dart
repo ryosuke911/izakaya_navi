@@ -1,9 +1,7 @@
-import 'package:envied/envied.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-part 'env.g.dart';
-
-@Envied(path: '.env')
-abstract class Env {
-  @EnviedField(varName: 'GOOGLE_PLACES_API_KEY')
-  static const String googlePlacesApiKey = _Env.googlePlacesApiKey;
+class Env {
+  static String get hotpepperApiKey {
+    return dotenv.env['HOTPEPPER_API_KEY'] ?? '';
+  }
 } 

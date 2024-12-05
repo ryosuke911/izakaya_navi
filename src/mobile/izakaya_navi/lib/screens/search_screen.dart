@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/search_filter.dart';
 import '../widgets/category_buttons.dart';
 import '../services/search_service.dart';
+import '../services/location_service.dart';
 import 'search_result_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -12,10 +13,16 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final _searchService = SearchService();
+  late final SearchService _searchService;
   final Map<String, dynamic> _searchFilters = {};
   final List<String> _selectedCategories = [];
   bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchService = SearchService(LocationService());
+  }
 
   void _showError(String message) {
     if (!mounted) return;
@@ -41,15 +48,15 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       final venues = await _searchService.searchByFilters(
-        area: _searchFilters['area'],
-        categories: _selectedCategories,
+        keyword: _searchFilters['area'],
+        genres: _selectedCategories,
         personCount: _searchFilters['persons'],
-        smokingStatus: _searchFilters['smoking'],
+        smoking: _searchFilters['smoking'],
         hasNomihodai: _searchFilters['nomihodai'],
         hasPrivateRoom: _searchFilters['privateRoom'],
         businessHours: _searchFilters['businessHours'],
-        minBudget: _searchFilters['budgetMin']?.toDouble(),
-        maxBudget: _searchFilters['budgetMax']?.toDouble(),
+        budgetMin: _searchFilters['budgetMin']?.toDouble(),
+        budgetMax: _searchFilters['budgetMax']?.toDouble(),
       );
 
       if (!mounted) return;

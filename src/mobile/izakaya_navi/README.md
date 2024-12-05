@@ -1,19 +1,6 @@
 # izakaya_navi
 
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+居酒屋検索アプリケーション
 
 ## セットアップ
 
@@ -23,12 +10,11 @@ samples, guidance on mobile development, and a full API reference.
    cp .env.example .env
    ```
 
-2. Google Places APIキーの取得:
-   - [Google Cloud Console](https://console.cloud.google.com/apis/credentials)にアクセス
-   - プロジェクトを作成（または既存のプロジェクトを選択）
-   - Places APIを有効化
-   - APIキーを作成
-   - 作成したAPIキーを`.env`ファイルの`GOOGLE_PLACES_API_KEY`に設定
+2. ホットペッパーグルメAPIキーの取得:
+   - [リクルートWebサービス](https://webservice.recruit.co.jp/register)にアクセス
+   - 会員登録を行う
+   - APIキーを発行
+   - 作成したAPIキーを`.env`ファイルの`HOTPEPPER_API_KEY`に設定
 
 3. 依存関係のインストール:
    ```bash
@@ -40,8 +26,17 @@ samples, guidance on mobile development, and a full API reference.
    flutter pub run build_runner build
    ```
 
+## 機能
+
+- 居酒屋の検索（キーワード、エリア、ジャンルなど）
+- 現在地周辺の居酒屋検索
+- 詳細な条件での絞り込み（予算、人数、設備など）
+- 店舗の詳細情報の表示
+- Google Mapsでの位置確認
+- ホットペッパーグルメへのリンク
+
 ## 注意事項
 
 - `.env`ファイルは決してGitにコミットしないでください
 - APIキーは定期的に更新することをお勧めします
-- 本番環境では適切なAPIキーの制限（HTTPリファラー、IPアドレスなど）を設定してください
+- 本番環境では適切なAPIキーの制限を設定してください

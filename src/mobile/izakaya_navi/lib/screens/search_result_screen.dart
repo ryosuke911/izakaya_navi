@@ -50,7 +50,7 @@ class SearchResultScreen extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Hero(
-                    tag: 'store_${venue.placeId}',
+                    tag: 'store_${venue.id}',
                     child: Material(
                       child: StoreCard(
                         venue: venue,

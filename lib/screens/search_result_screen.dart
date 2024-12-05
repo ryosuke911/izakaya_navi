@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/store_card.dart';
 import '../models/venue.dart';
+import 'store_detail_screen.dart';
 
-class SearchResultScreen extends StatelessWidget {
+class SearchResultScreen extends StatefulWidget {
   final List<Venue> venues;
   final String searchQuery;
 
@@ -13,31 +14,101 @@ class SearchResultScreen extends StatelessWidget {
   });
 
   @override
+  State<SearchResultScreen> createState() => _SearchResultScreenState();
+}
+
+class _SearchResultScreenState extends State<SearchResultScreen> {
+  static const int _itemsPerPage = 20;
+  final ScrollController _scrollController = ScrollController();
+  List<Venue> _displayedVenues = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMoreItems();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _loadMoreItems() {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      final nextItems = widget.venues.skip(_displayedVenues.length).take(_itemsPerPage).toList();
+      _displayedVenues.addAll(nextItems);
+      _isLoading = false;
+    });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8 &&
+        _displayedVenues.length < widget.venues.length) {
+      _loadMoreItems();
+    }
+  }
+
+  void _navigateToDetail(BuildContext context, Venue venue) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StoreDetailScreen(venue: venue),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('$searchQueryの検索結果'),
+        title: Text('${widget.searchQuery}の検索結果'),
         centerTitle: true,
       ),
-      body: venues.isEmpty
+      body: widget.venues.isEmpty
           ? const Center(
               child: Text('検索結果が見つかりませんでした'),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: venues.length,
-              itemBuilder: (context, index) {
-                final venue = venues[index];
-                return StoreCard(
-                  name: venue.name,
-                  rating: venue.rating ?? 0.0,
-                  imageUrl: '',  // 今回は画像表示は実装しない
-                  categories: venue.types,
-                  onTap: () {
-                    // 後で店舗詳細画面に遷移する処理を追加
-                  },
-                );
-              },
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    '${widget.venues.length}件の検索結果',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _displayedVenues.length + (_displayedVenues.length < widget.venues.length ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _displayedVenues.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      final venue = _displayedVenues[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: StoreCard(
+                          venue: venue,
+                          onTap: () => _navigateToDetail(context, venue),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }

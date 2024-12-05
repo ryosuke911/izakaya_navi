@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../widgets/search_bar.dart';
 import '../widgets/store_card.dart';
 import '../widgets/search_button.dart';
-import '../api/places_api.dart';
+import '../services/search_service.dart';
+import '../services/location_service.dart';
 import 'search_screen.dart';
 import 'search_result_screen.dart';
 
@@ -14,14 +15,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _placesApi = PlacesApi();
+  late final SearchService _searchService;
   bool _isSearching = false;
 
-  Future<void> _handleSearch(String query) async {
-    print('HomeScreen._handleSearch called with query: $query'); // デバッグ用：メソッド呼び出しの出力
+  @override
+  void initState() {
+    super.initState();
+    _searchService = SearchService(LocationService());
+  }
 
+  Future<void> _handleSearch(String query) async {
     if (query.isEmpty) {
-      print('Empty query, showing error message'); // デバッグ用：空クエリの処理
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -37,52 +41,48 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      print('Calling PlacesApi.searchByText'); // デバッグ用：API呼び出しの出力
-      final venues = await _placesApi.searchByText(query);
-      print('Search completed, venues count: ${venues.length}'); // デバッグ用：検索結果数の出力
+      print('Searching for: $query');
+      final venues = await _searchService.searchByKeyword(query.trim());
+      print('Found ${venues.length} venues');
 
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SearchResultScreen(
-              venues: venues,
-              searchQuery: query,
-            ),
-          ),
-        );
-      }
-    } catch (e, stackTrace) {
-      print('Error in _handleSearch: $e'); // デバッグ用：エラーの出力
-      print('Stack trace: $stackTrace'); // デバッグ用：スタックトレースの出力
+      if (!mounted) return;
 
-      if (mounted) {
-        String errorMessage = '検索中にエラーが発生しました。';
-        
-        // エラーの種類に応じてメッセージを変更
-        if (e.toString().contains('INVALID_REQUEST')) {
-          errorMessage = '検索リクエストが無効です。検索キーワードを確認してください。';
-        } else if (e.toString().contains('ZERO_RESULTS')) {
-          errorMessage = '検索結果が見つかりませんでした。検索キーワードを変更してお試しください。';
-        } else if (e.toString().contains('OVER_QUERY_LIMIT')) {
-          errorMessage = 'API制限に達しました。しばらく時間をおいてから再度お試しください。';
-        } else if (e.toString().contains('REQUEST_DENIED')) {
-          errorMessage = 'APIキーが無効です。システム管理者にお問い合わせください。';
-        }
-
+      if (venues.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: '閉じる',
-              onPressed: () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-              },
-            ),
+          const SnackBar(
+            content: Text('検索結果が見つかりませんでした'),
           ),
         );
+        return;
       }
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SearchResultScreen(
+            venues: venues,
+            searchQuery: query,
+          ),
+        ),
+      );
+    } catch (e, stackTrace) {
+      print('Search error: $e');
+      print('Stack trace: $stackTrace');
+      
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('検索中にエラーが発生しました: $e'),
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: '閉じる',
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {

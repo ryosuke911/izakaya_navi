@@ -12,7 +12,7 @@ src:
 
         config:
           env.dart:
-            content: "環境変数の定義（APIキーなど）"
+            content: "環境変数の定義（ホットペッパーAPIキー）"
             dependency: []
 
         models:
@@ -24,11 +24,37 @@ src:
             content: "位置情報のデータモデル"
             dependency: []
 
+          hotpepper:
+            shop.dart:
+              content: "ホットペッパーAPIのレスポンス用モデル"
+              dependency: []
+              properties:
+                - id: "店舗ID"
+                - name: "店舗名"
+                - address: "住所"
+                - lat: "緯度"
+                - lng: "経度"
+                - access: "アクセス情報"
+                - open: "営業時間"
+                - close: "定休日"
+                - photo: "店舗写真情報"
+                - genre: "ジャンル情報"
+                - budget: "予算情報"
+                - capacity: "総席数"
+                - party_capacity: "収容人数"
+                - wifi: "Wi-Fi有無"
+                - private_room: "個室有無"
+                - smoking: "喫煙情報"
+                - free_drink: "飲み放題有無"
+              methods:
+                - fromJson: "JSONからモデルを生成"
+                - toVenue: "Venueモデルへの変換"
+
         services:
           store_service.dart:
-            content: "店舗情報の取得と管理（Foursquare Places API）"
+            content: "店舗情報の取得と管理（ホットペッパーAPI）"
             dependency:
-              - lib/api/foursquare_api.dart
+              - lib/api/hotpepper_api.dart
               - lib/models/venue.dart
               - lib/models/location.dart
               - lib/config/env.dart
@@ -40,34 +66,28 @@ src:
 
           search_service.dart:
             content: |
-              "検索機能の実装、条件フィルタリング
+              "ホットペッパーAPIを使用した検索機能の実装
               - 詳細検索機能
                 - エリア・駅名による検索
                 - カテゴリによるフィルタリング（複数選択対応）
                 - 詳細条件によるフィルタリング
-                  - 人数での絞り込み（Places APIの詳細情報から座席数を確認）
-                  - 喫煙状況での絞り込み（Places APIの詳細情報から喫煙可否を確認）
-                  - オプション（飲み放題、個室）での絞り込み（Places APIの詳細情報から設備情報を確認）
-                  - 営業時間での絞り込み（Places APIのopenNowと営業時間情報を使用）
-                  - 予算範囲での絞り込み（Places APIのpriceLevelを使用）
-                - 検索結果のソート機能（評価順、距離順）
-                - フィルタリング処理の改善
-                  - 各フィルター条件の適用状況のログ出力
-                  - エラー発生時の具体的なメッセージ表示
-                  - フィルター条件の適用順序の最適化
-                  - メモリ使用量の最適化"
+                  - 人数での絞り込み（party_capacity）
+                  - 喫煙状況での絞り込み（smoking）
+                  - オプション（飲み放題、個室）での絞り込み
+                  - 営業時間での絞り込み（open）
+                  - 予算範囲での絞り込み（budget）
+                - 検索結果のソート機能（距離順）"
             dependency:
-              - lib/api/places_api.dart
+              - lib/api/hotpepper_api.dart
               - lib/models/venue.dart
               - lib/services/location_service.dart
             methods:
-              - searchByFilters: "詳細条件による店舗検索（フィルター条件の適用を最適化）"
-              - filterVenues: "検索結果の詳細フィルタリング（各条件の適用状況をログ出力）"
-              - sortVenues: "検索結果のソート（評価順・距離順）"
-              - _convertBudgetToPriceLevel: "予算をGoogle Places APIの価格レベルに変換（変換ロジックを最適化）"
-              - _filterByBusinessHours: "営業時間による詳細フィルタリング"
-              - _filterByFacilities: "設備（喫煙・個室など）による詳細フィルタリング"
-              - _filterByCapacity: "収容人数による詳細フィルタリング"
+              - searchByFilters: "ホットペッパーAPIを使用した詳細条件による店舗検索"
+              - _convertSmoking: "喫煙状況の条件をAPIパラメータに変換"
+              - _convertOpen: "営業時間の条件をAPIパラメータに変換"
+              - _convertBudget: "予算範囲をAPIパラメータに変換"
+              - _convertGenres: "選択されたカテゴリをAPIパラメータに変換"
+              - sortVenues: "検索結果のソート（距離順）"
 
           favorite_service.dart:
             content: "お気に入り店舗の管理"
@@ -77,36 +97,35 @@ src:
           location_service.dart:
             content: "位置情報の取得と処理"
             dependency: []
+            methods:
+              - getCurrentLocation: "現在位置の取得"
+              - calculateDistance: "2地点間の距離を計算"
 
         api:
-          places_api.dart:
-            content: "Google Places APIクライアント"
+          hotpepper_api.dart:
+            content: "ホットペッパーAPIクライアント"
             dependency:
               - lib/config/env.dart
               - lib/models/venue.dart
               - lib/models/location.dart
+              - lib/models/hotpepper/shop.dart
               - package:http/http.dart
             methods:
-              - searchByText: "テキスト検索で店舗を検索（エリア・駅名、キーワード）"
+              - searchByKeyword: "キーワードによる店舗検索"
               - searchByFilters: |
                 "詳細条件による店舗検索
                 - エリア・駅名をベースに検索
                 - 以下の条件でフィルタリング
-                  - types（カテゴリ）
-                  - maxprice（予算上限）
-                  - minprice（予算下限）
-                  - opennow（営業中）
-                - 検索結果の最適化
-                  - ranking（評価順）
-                  - distance（距離順）
-                - 詳細情報の取得と処理
-                  - 店舗詳細情報の一括取得
-                  - 詳細情報に基づくフィルタリング
-                  - エラー発生時の適切なハンドリング"
-              - getPlaceDetails: "店舗の詳細情報を取得（営業時間、設備など）"
-              - getPlacePhoto: "店舗の写真を取得（photoReferenceを使用）"
-              - _enrichVenueWithDetails: "店舗情報に詳細データを追加（フィルタリングに必要な情報を収集）"
-              - _filterVenuesByDetails: "詳細情報に基づく高度なフィルタリング"
+                  - keyword（キーワード）
+                  - area（エリア）
+                  - genre（ジャンル）
+                  - budget（予算）
+                  - party_capacity（収容人数）
+                  - private_room（個室）
+                  - smoking（喫煙）
+                  - free_drink（飲み放題）
+                  - open（営業時間）"
+              - getShopDetail: "店舗の詳細情報を取得"
 
         screens:
           home_screen.dart:
@@ -124,7 +143,7 @@ src:
             content: |
               "詳細検索画面の実装
               - 画面構成
-                - カテゴリ選択（複数選択可能、カテゴリ編集機能準備）
+                - カテゴリ選択（複数選択可能）
                 - 詳細条件
                   - エリア・駅名入力
                   - 人数選択（1〜8人）
@@ -144,6 +163,7 @@ src:
               - lib/widgets/category_buttons.dart
               - lib/screens/search_result_screen.dart
               - lib/services/search_service.dart
+              - lib/services/location_service.dart
             methods:
               - _handleSearch: "検索条件を元に検索を実行し、結果画面に遷移"
               - _showError: "エラーメッセージをSnackBarで表示"
@@ -160,11 +180,10 @@ src:
             content: |
               "店舗の詳細情報表示画面
               - 基本情報（店名、住所、電話番号、営業時間）
-              - 評価情報（評価点数、レビュー数）
               - 写真ギャラリー（最大10枚）
-              - 店舗の特徴（価格帯、カテゴリー、設備など）
+              - 店舗の特徴（価格帯、設備など）
               - お気に入り登録ボタン
-              - 外部リンク（公式サイト、Google Maps）"
+              - 外部リンク（ホットペッパーグルメ、Google Maps）"
             dependency:
               - lib/widgets/store_gallery.dart
               - lib/models/venue.dart
@@ -182,15 +201,6 @@ src:
             content: "エリア検索バーのカスタムウィジェット（テキスト入力対応）"
             dependency: []
 
-          category_buttons.dart:
-            content: |
-              "カテゴリ選択ボタンのグリッド
-              - 複数選択可能
-              - アイコンと名称の表示
-              - カテゴリ編集機能の準備（現在は未実装）
-              - 選択状態の視覚的フィードバック"
-            dependency: []
-
           search_filter.dart:
             content: |
               "詳細検索条件のフィルターウィジェット
@@ -204,20 +214,18 @@ src:
             dependency: []
 
           store_card.dart:
-            content: "店舗情報を表示するカードウィジェット（店名、評価、カテゴリ、住所、写真）"
+            content: "店舗情報を表示するカードウィジェット（店名、カテゴリ、住所、写真）"
             dependency:
               - lib/models/venue.dart
-              - lib/api/places_api.dart
               - lib/widgets/store_gallery.dart
             methods:
               - build: "カードウィジェットの構築"
               - buildImage: "店舗写真の表示（StoreGalleryを使用）"
-              - buildInfo: "店舗情報の表示（店名、評価、カテゴリ）"
+              - buildInfo: "店舗情報の表示（店名、カテゴリ）"
 
           store_gallery.dart:
             content: "店舗画像のスワイプ可能なギャラリー（写真の取得と表示を担当）"
             dependency:
-              - lib/api/places_api.dart
               - lib/models/venue.dart
             methods:
               - loadPhotos: "写真の非同期読み込み"
@@ -230,6 +238,16 @@ src:
           search_button.dart:
             content: "詳細検索ボタンのカスタムウィジェット"
             dependency: []
+
+          category_buttons.dart:
+            content: |
+              "カテゴリ選択ボタンのグリッド
+              - 複数選択可能
+              - アイコンと名称の表示
+              - 選択状態の視覚的フィードバック
+              - ホットペッパーAPIのジャンルに対応"
+            dependency:
+              - lib/models/hotpepper/genre.dart
 
         backend:
           supabase:

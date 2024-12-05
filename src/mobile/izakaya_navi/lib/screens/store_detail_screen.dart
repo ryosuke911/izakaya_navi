@@ -13,26 +13,26 @@ class StoreDetailScreen extends StatelessWidget {
 
   Future<void> _launchMaps() async {
     final url = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=${venue.location.lat},${venue.location.lng}',
+      'https://www.google.com/maps/search/?api=1&query=${venue.location.latitude},${venue.location.longitude}',
     );
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     }
   }
 
-  Future<void> _launchWebsite() async {
-    if (venue.website == null) return;
+  Future<void> _launchHotpepper() async {
+    if (venue.additionalDetails?['urls']?['pc'] == null) return;
     
-    final url = Uri.parse(venue.website!);
+    final url = Uri.parse(venue.additionalDetails!['urls']['pc'] as String);
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     }
   }
 
   Future<void> _launchPhone() async {
-    if (venue.formattedPhoneNumber == null) return;
+    if (venue.phoneNumber == null) return;
     
-    final url = Uri.parse('tel:${venue.formattedPhoneNumber}');
+    final url = Uri.parse('tel:${venue.phoneNumber}');
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     }
@@ -49,7 +49,7 @@ class StoreDetailScreen extends StatelessWidget {
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               title: Hero(
-                tag: 'store_${venue.placeId}',
+                tag: 'store_${venue.id}',
                 child: Material(
                   type: MaterialType.transparency,
                   child: Text(
@@ -61,18 +61,7 @@ class StoreDetailScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              background: venue.photos != null && venue.photos!.isNotEmpty
-                  ? StoreGallery(photos: venue.photos!)
-                  : Container(
-                      color: Colors.grey[200],
-                      child: const Center(
-                        child: Icon(
-                          Icons.restaurant,
-                          size: 48,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
+              background: StoreGallery(venue: venue),
             ),
             actions: [
               IconButton(
@@ -110,10 +99,10 @@ class StoreDetailScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        if (venue.userRatingsTotal != null) ...[
+                        if (venue.reviewCount != null) ...[
                           const SizedBox(width: 8),
                           Text(
-                            '(${venue.userRatingsTotal}件)',
+                            '(${venue.reviewCount}件)',
                             style: TextStyle(
                               color: Colors.grey[600],
                             ),
@@ -124,10 +113,10 @@ class StoreDetailScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // カテゴリー
-                  if (venue.types.isNotEmpty) ...[
+                  // カャンル
+                  if (venue.genres.isNotEmpty) ...[
                     const Text(
-                      'カテゴリー',
+                      'ジャンル',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -137,9 +126,9 @@ class StoreDetailScreen extends StatelessWidget {
                     Wrap(
                       spacing: 8,
                       runSpacing: 4,
-                      children: venue.types.map((type) {
+                      children: venue.genres.map((genre) {
                         return Chip(
-                          label: Text(type),
+                          label: Text(genre),
                           backgroundColor: Colors.grey[200],
                         );
                       }).toList(),
@@ -148,7 +137,7 @@ class StoreDetailScreen extends StatelessWidget {
                   ],
 
                   // 住所
-                  if (venue.vicinity != null) ...[
+                  if (venue.address != null) ...[
                     const Text(
                       '住所',
                       style: TextStyle(
@@ -160,7 +149,7 @@ class StoreDetailScreen extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(venue.vicinity!),
+                          child: Text(venue.address!),
                         ),
                         IconButton(
                           icon: const Icon(Icons.map),
@@ -168,11 +157,21 @@ class StoreDetailScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (venue.access != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        venue.access!,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                   ],
 
                   // 電話番号
-                  if (venue.formattedPhoneNumber != null) ...[
+                  if (venue.phoneNumber != null) ...[
                     const Text(
                       '電話番号',
                       style: TextStyle(
@@ -183,7 +182,7 @@ class StoreDetailScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Text(venue.formattedPhoneNumber!),
+                        Text(venue.phoneNumber!),
                         IconButton(
                           icon: const Icon(Icons.phone),
                           onPressed: _launchPhone,
@@ -194,7 +193,7 @@ class StoreDetailScreen extends StatelessWidget {
                   ],
 
                   // 営業時間
-                  if (venue.openingHours != null) ...[
+                  if (venue.open != null || venue.close != null) ...[
                     const Text(
                       '営業時間',
                       style: TextStyle(
@@ -203,34 +202,39 @@ class StoreDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      venue.openingHours!.openNow ? '営業中' : '営業時間外',
-                      style: TextStyle(
-                        color: venue.openingHours!.openNow ? Colors.green : Colors.red,
-                      ),
-                    ),
-                    if (venue.openingHours!.weekdayText != null) ...[
-                      const SizedBox(height: 8),
-                      ...venue.openingHours!.weekdayText!.map((text) => Text(text)),
+                    if (venue.open != null)
+                      Text('営業時間: ${venue.open}'),
+                    if (venue.close != null) ...[
+                      const SizedBox(height: 4),
+                      Text('定休日: ${venue.close}'),
                     ],
                     const SizedBox(height: 16),
                   ],
 
-                  // ウェブサイト
-                  if (venue.website != null) ...[
+                  // 予算
+                  if (venue.budget != null) ...[
                     const Text(
-                      'ウェブサイト',
+                      '予算',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _launchWebsite,
-                      child: Text(venue.website!),
-                    ),
+                    Text(venue.budget!),
+                    const SizedBox(height: 16),
                   ],
+
+                  // ホットペッパーグルメのリンク
+                  ElevatedButton.icon(
+                    onPressed: _launchHotpepper,
+                    icon: const Icon(Icons.restaurant_menu),
+                    label: const Text('ホットペッパーグルメで見る'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
                 ],
               ),
             ),

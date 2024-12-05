@@ -1,44 +1,23 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/venue.dart';
-import '../api/places_api.dart';
 
-class StoreCard extends StatefulWidget {
+class StoreCard extends StatelessWidget {
   final Venue venue;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const StoreCard({
-    super.key,
+    Key? key,
     required this.venue,
-    required this.onTap,
-  });
-
-  @override
-  State<StoreCard> createState() => _StoreCardState();
-}
-
-class _StoreCardState extends State<StoreCard> {
-  final PlacesApi _placesApi = PlacesApi();
-  Future<Uint8List>? _photoFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPhoto();
-  }
-
-  void _loadPhoto() {
-    if (widget.venue.photos != null && widget.venue.photos!.isNotEmpty) {
-      _photoFuture = _placesApi.getPlacePhoto(widget.venue.photos!.first.photoReference);
-    }
-  }
+    this.onTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: InkWell(
-        onTap: widget.onTap,
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -53,63 +32,7 @@ class _StoreCardState extends State<StoreCard> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: _photoFuture != null
-                      ? FutureBuilder<Uint8List>(
-                          future: _photoFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                              );
-                            }
-
-                            if (snapshot.hasError || !snapshot.hasData) {
-                              return Container(
-                                color: Colors.grey[200],
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.restaurant,
-                                    color: Colors.grey,
-                                    size: 32,
-                                  ),
-                                ),
-                              );
-                            }
-
-                            return Image.memory(
-                              snapshot.data!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[200],
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.restaurant,
-                                      color: Colors.grey,
-                                      size: 32,
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        )
-                      : Container(
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: Icon(
-                              Icons.restaurant,
-                              color: Colors.grey,
-                              size: 32,
-                            ),
-                          ),
-                        ),
+                  child: buildImage(),
                 ),
               ),
               const SizedBox(width: 12),
@@ -124,7 +47,7 @@ class _StoreCardState extends State<StoreCard> {
                       children: [
                         Expanded(
                           child: Text(
-                            widget.venue.name,
+                            venue.name,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -133,7 +56,7 @@ class _StoreCardState extends State<StoreCard> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (widget.venue.rating != null) ...[
+                        if (venue.rating != null) ...[
                           const SizedBox(width: 4),
                           Row(
                             children: [
@@ -144,7 +67,7 @@ class _StoreCardState extends State<StoreCard> {
                               ),
                               const SizedBox(width: 2),
                               Text(
-                                widget.venue.rating.toString(),
+                                venue.rating.toString(),
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -158,11 +81,11 @@ class _StoreCardState extends State<StoreCard> {
                     const SizedBox(height: 8),
                     
                     // カテゴリタグ
-                    if (widget.venue.types.isNotEmpty)
+                    if (venue.genres.isNotEmpty)
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
-                        children: widget.venue.types.map((category) {
+                        children: venue.genres.map((genre) {
                           return Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
@@ -173,7 +96,7 @@ class _StoreCardState extends State<StoreCard> {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              category,
+                              genre,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[700],
@@ -194,6 +117,36 @@ class _StoreCardState extends State<StoreCard> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildImage() {
+    if (venue.photos.isNotEmpty) {
+      return Image.network(
+        venue.photos.first,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildPlaceholder();
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return _buildPlaceholder();
+        },
+      );
+    }
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: Colors.grey[200],
+      child: const Center(
+        child: Icon(
+          Icons.restaurant,
+          color: Colors.grey,
+          size: 32,
         ),
       ),
     );
