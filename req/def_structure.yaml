@@ -52,21 +52,12 @@ src:
 
         services:
           store_service.dart:
-            content: "店舗情報の取得と管理（ホットペッパーAPI）"
-            dependency:
-              - lib/api/hotpepper_api.dart
-              - lib/models/venue.dart
-              - lib/models/location.dart
-              - lib/config/env.dart
-
-          auth_service.dart:
-            content: "Supabase認証機能の実装"
-            dependency:
-              - lib/backend/supabase/auth_functions.dart
-
-          search_service.dart:
             content: |
-              "ホットペッパーAPIを使用した検索機能の実装
+              "ホットペッパーAPIを利用した店舗情報の取得・検索・管理サービス
+              - 基本機能
+                - キーワードによる店舗検索（ホットペッパーAPI）
+                - 詳細条件による店舗検索（ホットペッパーAPI）
+                - 店舗詳細情報の取得（ホットペッパーAPI）
               - 詳細検索機能
                 - エリア・駅名による検索
                 - カテゴリによるフィルタリング（複数選択対応）
@@ -80,14 +71,23 @@ src:
             dependency:
               - lib/api/hotpepper_api.dart
               - lib/models/venue.dart
+              - lib/models/location.dart
               - lib/services/location_service.dart
+              - lib/config/env.dart
             methods:
-              - searchByFilters: "ホットペッパーAPIを使用した詳細条件による店舗検索"
+              - searchByKeyword: "キーワードによる店舗検索"
+              - searchByFilters: "詳細条件による店舗検索"
+              - getShopDetail: "店舗の詳細情報取得"
+              - sortVenues: "検索結果のソート（距離順）"
               - _convertSmoking: "喫煙状況の条件をAPIパラメータに変換"
               - _convertOpen: "営業時間の条件をAPIパラメータに変換"
               - _convertBudget: "予算範囲をAPIパラメータに変換"
               - _convertGenres: "選択されたカテゴリをAPIパラメータに変換"
-              - sortVenues: "検索結果のソート（距離順）"
+
+          auth_service.dart:
+            content: "Supabase認証機能の実装"
+            dependency:
+              - lib/backend/supabase/auth_functions.dart
 
           favorite_service.dart:
             content: "お気に入り店舗の管理"
@@ -154,7 +154,7 @@ src:
                 - 検索ボタン
               - 機能
                 - 検索条件の収集と保持
-                - SearchServiceを使用した検索の実行
+                - StoreServiceを使用した検索の実行
                 - 検索中のローディング表示
                 - エラー時のエラーメッセージ表示
                 - 検索結果をSearchResultScreenに渡して画面遷移"
@@ -162,7 +162,7 @@ src:
               - lib/widgets/search_filter.dart
               - lib/widgets/category_buttons.dart
               - lib/screens/search_result_screen.dart
-              - lib/services/search_service.dart
+              - lib/services/store_service.dart
               - lib/services/location_service.dart
             methods:
               - _handleSearch: "検索条件を元に検索を実行し、結果画面に遷移"

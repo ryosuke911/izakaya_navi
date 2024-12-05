@@ -82,28 +82,32 @@ class StoreCard extends StatelessWidget {
                     
                     // カテゴリタグ
                     if (venue.genres.isNotEmpty)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: venue.genres.map((genre) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              genre,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[700],
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: venue.genres.map((genre) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  genre,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
                               ),
-                            ),
-                          );
-                        }).toList(),
+                            );
+                          }).toList(),
+                        ),
                       ),
                   ],
                 ),

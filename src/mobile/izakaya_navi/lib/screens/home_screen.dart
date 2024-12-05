@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/search_bar.dart';
 import '../widgets/store_card.dart';
 import '../widgets/search_button.dart';
-import '../services/search_service.dart';
+import '../services/store_service.dart';
 import '../services/location_service.dart';
 import 'search_screen.dart';
 import 'search_result_screen.dart';
@@ -15,13 +15,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final SearchService _searchService;
+  late final StoreService _storeService;
   bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
-    _searchService = SearchService(LocationService());
+    _storeService = StoreService(locationService: LocationService());
   }
 
   Future<void> _handleSearch(String query) async {
@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       print('Searching for: $query');
-      final venues = await _searchService.searchByKeyword(query.trim());
+      final venues = await _storeService.searchByKeyword(query.trim());
       print('Found ${venues.length} venues');
 
       if (!mounted) return;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/search_filter.dart';
 import '../widgets/category_buttons.dart';
-import '../services/search_service.dart';
+import '../services/store_service.dart';
 import '../services/location_service.dart';
 import 'search_result_screen.dart';
 
@@ -13,7 +13,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  late final SearchService _searchService;
+  late final StoreService _storeService;
   final Map<String, dynamic> _searchFilters = {};
   final List<String> _selectedCategories = [];
   bool _isSearching = false;
@@ -21,7 +21,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _searchService = SearchService(LocationService());
+    _storeService = StoreService(locationService: LocationService());
   }
 
   void _showError(String message) {
@@ -47,7 +47,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final venues = await _searchService.searchByFilters(
+      final venues = await _storeService.searchByFilters(
         keyword: _searchFilters['area'],
         genres: _selectedCategories,
         personCount: _searchFilters['persons'],
