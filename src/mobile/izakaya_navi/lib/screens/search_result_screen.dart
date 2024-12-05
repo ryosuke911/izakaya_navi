@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import '../widgets/store_card.dart';
 import '../models/venue.dart';
+import '../models/hotpepper/search_params.dart';
 import 'store_detail_screen.dart';
 
 class SearchResultScreen extends StatelessWidget {
   final List<Venue> venues;
-  final String searchQuery;
+  final SearchParams searchParams;
 
   const SearchResultScreen({
     super.key,
     required this.venues,
-    required this.searchQuery,
+    required this.searchParams,
   });
 
   void _navigateToDetail(BuildContext context, Venue venue) {
@@ -31,36 +32,138 @@ class SearchResultScreen extends StatelessWidget {
     }
   }
 
+  Widget _buildSearchConditions() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.grey[100],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (searchParams.keyword != null) ...[
+            Text('キーワード: ${searchParams.keyword}'),
+            const SizedBox(height: 4),
+          ],
+          if (searchParams.area != null) ...[
+            Text('エリア: ${searchParams.area!.name}'),
+            const SizedBox(height: 4),
+          ],
+          if (searchParams.genres.isNotEmpty) ...[
+            Text('ジャンル: ${searchParams.genres.map((g) => g.name).join(', ')}'),
+            const SizedBox(height: 4),
+          ],
+          if (searchParams.budget != null) ...[
+            Text(
+              '予算: ${searchParams.budget!.min ?? ''}円 〜 ${searchParams.budget!.max ?? ''}円',
+            ),
+            const SizedBox(height: 4),
+          ],
+          if (searchParams.partySize != null) ...[
+            Text('人数: ${searchParams.partySize}人'),
+            const SizedBox(height: 4),
+          ],
+          Row(
+            children: [
+              if (searchParams.hasPrivateRoom ?? false)
+                _buildConditionChip('個室あり'),
+              if (searchParams.hasFreedrink ?? false)
+                _buildConditionChip('飲み放題あり'),
+              if (searchParams.openNow ?? false)
+                _buildConditionChip('現在営業中'),
+              if (searchParams.lateNight ?? false)
+                _buildConditionChip('深夜営業'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConditionChip(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Chip(
+        label: Text(
+          label,
+          style: const TextStyle(fontSize: 12),
+        ),
+        backgroundColor: Colors.white,
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+
+  Widget _buildEmptyResult() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.search_off,
+            size: 64,
+            color: Colors.grey,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '検索結果が見つかりませんでした',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '検索条件を変更して、もう一度お試しください',
+            style: TextStyle(
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton(
+            onPressed: () => Navigator.pop,
+            child: const Text('検索条件を変更'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('$searchQueryの検索結果'),
+        title: Text('検索結果（${venues.length}件）'),
         centerTitle: true,
       ),
-      body: venues.isEmpty
-          ? const Center(
-              child: Text('検索結果が見つかりませんでした'),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: venues.length,
-              itemBuilder: (context, index) {
-                final venue = venues[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Hero(
-                    tag: 'store_${venue.id}',
-                    child: Material(
-                      child: StoreCard(
-                        venue: venue,
-                        onTap: () => _navigateToDetail(context, venue),
-                      ),
-                    ),
+      body: Column(
+        children: [
+          _buildSearchConditions(),
+          Expanded(
+            child: venues.isEmpty
+                ? _buildEmptyResult()
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: venues.length,
+                    itemBuilder: (context, index) {
+                      final venue = venues[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Hero(
+                          tag: 'store_${venue.id}',
+                          child: Material(
+                            elevation: 2,
+                            borderRadius: BorderRadius.circular(8),
+                            child: StoreCard(
+                              venue: venue,
+                              onTap: () => _navigateToDetail(context, venue),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
+          ),
+        ],
+      ),
     );
   }
 }

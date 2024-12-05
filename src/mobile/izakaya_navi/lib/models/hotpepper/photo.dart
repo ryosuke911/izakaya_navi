@@ -1,20 +1,21 @@
+/// 店舗写真情報のモデル（モバイル用）
 class Photo {
-  final Map<String, String> pc;
-  final Map<String, String> mobile;
+  final String url;
+  final String? caption;
 
   Photo({
-    required this.pc,
-    required this.mobile,
+    required this.url,
+    this.caption,
   });
 
+  /// JSONからモデルを生成
   factory Photo.fromJson(Map<String, dynamic> json) {
     return Photo(
-      pc: Map<String, String>.from(json['pc'] ?? {}),
-      mobile: Map<String, String>.from(json['mobile'] ?? {}),
+      url: json['mobile']['l'] as String, // モバイル用の大きいサイズの画像を使用
+      caption: json['caption'] as String?,
     );
   }
 
-  String? get largeImageUrl => pc['l'];
-  String? get mediumImageUrl => pc['m'];
-  String? get smallImageUrl => pc['s'];
+  @override
+  String toString() => 'Photo(url: $url, caption: $caption)';
 } 

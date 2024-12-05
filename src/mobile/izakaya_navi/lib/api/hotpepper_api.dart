@@ -2,189 +2,143 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/env.dart';
 import '../models/venue.dart';
-import '../models/location.dart';
 import '../models/hotpepper/shop.dart';
+import '../models/hotpepper/area.dart';
+import '../models/hotpepper/genre.dart';
 
 class HotpepperApi {
-  final String _apiKey;
   final String _baseUrl = 'http://webservice.recruit.co.jp/hotpepper/gourmet/v1/';
-  final http.Client _client;
-  
-  HotpepperApi({String? apiKey, http.Client? client}) 
-    : _apiKey = apiKey ?? Env.hotpepperApiKey,
-      _client = client ?? http.Client();
+  final String _apiKey;
 
+  HotpepperApi({String? apiKey}) : _apiKey = apiKey ?? Env.hotpepperApiKey;
+
+  /// キーワードによる店舗検索
   Future<List<Venue>> searchByKeyword(String keyword) async {
-    final params = <String, String>{
-      'key': _apiKey,
-      'keyword': keyword,
-      'format': 'json',
-    };
-
-    try {
-      final response = await _get('', params);
-      print('Raw API response: $response');
-
-      if (response['results'] == null) {
-        print('No results field in response');
-        return [];
-      }
-
-      if (response['results']['shop'] == null) {
-        print('No shop field in results');
-        return [];
-      }
-
-      final shops = Shop.listFromJson(response['results']['shop']);
-      print('Parsed ${shops.length} shops');
-      
-      final venues = shops.map((shop) => shop.toVenue()).toList();
-      print('Converted to ${venues.length} venues');
-      
-      return venues;
-    } catch (e, stackTrace) {
-      print('Error in searchByKeyword: $e');
-      print('Stack trace: $stackTrace');
-      rethrow;
-    }
-  }
-
-  Future<List<Venue>> searchByFilters({
-    String? keyword,
-    String? name,
-    String? address,
-    String? area,
-    List<String>? genres,
-    int? partyCapacity,
-    String? smoking,
-    bool? privateRoom,
-    bool? freeDrink,
-    String? open,
-    String? budget,
-    double? latitude,
-    double? longitude,
-    String? range,
-  }) async {
+    // キーワードの特殊処理
     final Map<String, String> params = {
       'key': _apiKey,
       'format': 'json',
+      'count': '100',
     };
 
-    void addStringParam(String key, String? value) {
-      if (value?.isNotEmpty == true) {
-        params[key] = value!;
-      }
+    // 数字のみの場合は住所として検索
+    if (RegExp(r'^\d+$').hasMatch(keyword)) {
+      params['address'] = keyword;
+    }
+    // 駅名を含む場合は住所として検索
+    else if (keyword.contains('駅')) {
+      params['address'] = keyword;
+    }
+    // それ以外は通常のキーワード検索
+    else {
+      params['keyword'] = keyword;
     }
 
-    void addNumericParam(String key, num? value, {int? precision}) {
-      if (value != null) {
-        params[key] = precision != null 
-            ? value.toStringAsFixed(precision)
-            : value.toString();
-      }
-    }
-
-    void addBoolParam(String key, bool? value, {String trueValue = '1'}) {
-      if (value == true) {
-        params[key] = trueValue;
-      }
-    }
-
-    if (keyword?.isNotEmpty == true) {
-      if (RegExp(r'^\d+$').hasMatch(keyword!)) {
-        addStringParam('address', keyword);
-      } else if (keyword.contains('駅')) {
-        addStringParam('address', keyword);
-      } else {
-        addStringParam('keyword', keyword);
-      }
-    }
-
-    addStringParam('name', name);
-    addStringParam('address', address);
-    addStringParam('small_area', area);
-    if (genres?.isNotEmpty == true) {
-      params['genre'] = genres!.join(',');
-    }
-    addNumericParam('party_capacity', partyCapacity);
-    addStringParam('smoking', smoking);
-    addBoolParam('private_room', privateRoom);
-    addBoolParam('free_drink', freeDrink);
-    addStringParam('open', open);
-    addStringParam('budget', budget);
-    addNumericParam('lat', latitude, precision: 6);
-    addNumericParam('lng', longitude, precision: 6);
-    addStringParam('range', range);
-
-    print('Search parameters: $params');
-
-    final response = await _get('', params);
-    if (response['results']?['shop'] == null) {
-      print('No results found in API response');
-      return [];
-    }
-    final shops = Shop.listFromJson(response['results']['shop']);
-    return shops.map((shop) => shop.toVenue()).toList();
+    return _fetchVenues(params);
   }
 
+  /// 詳細条件による店舗検索
+  Future<List<Venue>> searchByFilters({
+    required Map<String, dynamic> params,
+  }) async {
+    // 基本パラメータを追加
+    final searchParams = {
+      'key': _apiKey,
+      'format': 'json',
+      'count': '100',
+      ...params,
+    };
+
+    return _fetchVenues(searchParams);
+  }
+
+  /// 店舗詳細情報の取得
   Future<Venue?> getShopDetail(String id) async {
     final params = {
       'key': _apiKey,
-      'format': 'json',
       'id': id,
+      'format': 'json',
     };
 
-    final response = await _get('', params);
-    final shops = Shop.listFromJson(response['results']['shop']);
-    return shops.isEmpty ? null : shops.first.toVenue();
+    final venues = await _fetchVenues(params);
+    return venues.isNotEmpty ? venues.first : null;
   }
 
-  Future<List<Map<String, String>>> getGenres() async {
+  /// ジャンル一覧の取得
+  Future<List<Genre>> getGenres() async {
+    final url = Uri.parse('http://webservice.recruit.co.jp/hotpepper/genre/v1/');
     final params = {
       'key': _apiKey,
       'format': 'json',
     };
 
-    final response = await _get('genre/v1/', params);
-    final genres = response['results']['genre'] as List;
-    return genres.map((genre) => {
-      'code': genre['code'] as String,
-      'name': genre['name'] as String,
-    }).toList();
-  }
-
-  Future<List<Map<String, String>>> getAreas() async {
-    final params = {
-      'key': _apiKey,
-      'format': 'json',
-    };
-
-    final response = await _get('small_area/v1/', params);
-    final areas = response['results']['small_area'] as List;
-    return areas.map((area) => {
-      'code': area['code'] as String,
-      'name': area['name'] as String,
-    }).toList();
-  }
-
-  Future<Map<String, dynamic>> _get(String path, Map<String, String> params) async {
-    final uri = Uri.parse(_baseUrl + path).replace(queryParameters: params);
-    
     try {
-      print('API Request URL: $uri');
-      final response = await _client.get(uri);
-      
+      final response = await http.get(url.replace(queryParameters: params));
       if (response.statusCode == 200) {
-        final decodedResponse = json.decode(utf8.decode(response.bodyBytes));
-        print('API Response: ${decodedResponse['results']['results_available']} results found');
-        return decodedResponse;
-      } else {
-        print('API Error: ${response.statusCode} - ${response.body}');
-        throw Exception('Failed to load data: ${response.statusCode}');
+        final data = json.decode(response.body);
+        final genres = data['results']['genre'] as List;
+        return genres.map((genre) => Genre.fromJson(genre)).toList();
       }
+      throw HotpepperApiException('ジャンル情報の取得に失敗���ました');
     } catch (e) {
-      print('Network Error: $e');
-      throw Exception('Network error: $e');
+      throw HotpepperApiException('APIリクエスト中にエラーが発生しました: $e');
     }
   }
+
+  /// エリア一覧の取得
+  Future<List<Area>> getAreas() async {
+    final url = Uri.parse('http://webservice.recruit.co.jp/hotpepper/small_area/v1/');
+    final params = {
+      'key': _apiKey,
+      'format': 'json',
+    };
+
+    try {
+      final response = await http.get(url.replace(queryParameters: params));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final areas = data['results']['small_area'] as List;
+        return areas.map((area) => Area.fromJson(area)).toList();
+      }
+      throw HotpepperApiException('エリア情報の取得に失敗しました');
+    } catch (e) {
+      throw HotpepperApiException('APIリクエスト中にエラーが発生しました: $e');
+    }
+  }
+
+  /// 店舗情報の取得共通処理
+  Future<List<Venue>> _fetchVenues(Map<String, dynamic> params) async {
+    final url = Uri.parse(_baseUrl);
+    
+    try {
+      final response = await http.get(url.replace(queryParameters: params));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // 検索結果の件数をログ
+        final resultsAvailable = data['results']['results_available'];
+        print('検索結果: $resultsAvailable 件');
+
+        if (data['results']['shop'] == null) {
+          print('検索結果なし');
+          return [];
+        }
+
+        final shops = data['results']['shop'] as List;
+        return shops.map((shop) => Shop.fromJson(shop).toVenue()).toList();
+      }
+      throw HotpepperApiException('店舗情報の取得に失敗しました: ${response.statusCode}');
+    } catch (e) {
+      print('APIエラー: $e');
+      throw HotpepperApiException('APIリクエスト中にエラーが発生しました: $e');
+    }
+  }
+}
+
+class HotpepperApiException implements Exception {
+  final String message;
+  HotpepperApiException(this.message);
+
+  @override
+  String toString() => message;
 } 

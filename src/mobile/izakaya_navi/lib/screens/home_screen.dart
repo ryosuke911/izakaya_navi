@@ -6,6 +6,7 @@ import '../services/store_service.dart';
 import '../services/location_service.dart';
 import 'search_screen.dart';
 import 'search_result_screen.dart';
+import '../models/hotpepper/search_params.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -56,33 +57,23 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      await Navigator.push(
+      Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => SearchResultScreen(
             venues: venues,
-            searchQuery: query,
+            searchParams: SearchParams(keyword: query),
           ),
         ),
       );
-    } catch (e, stackTrace) {
-      print('Search error: $e');
-      print('Stack trace: $stackTrace');
-      
-      if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('検索中にエラーが発生しました: $e'),
-          duration: const Duration(seconds: 5),
-          action: SnackBarAction(
-            label: '閉じる',
-            onPressed: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            },
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('検索中にエラーが発生しました: $e'),
           ),
-        ),
-      );
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

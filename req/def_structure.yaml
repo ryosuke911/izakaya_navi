@@ -50,6 +50,55 @@ src:
                 - fromJson: "JSONからモデルを生成"
                 - toVenue: "Venueモデルへの変換"
 
+            search_params.dart:
+              content: |
+                "詳細検索条件のパラメータモデル
+                - 検索条件の型安全な管理
+                - APIパラメータへの変換ロジック"
+              dependency:
+                - lib/models/hotpepper/area.dart
+                - lib/models/hotpepper/genre.dart
+              properties:
+                - keyword: "検索キーワード"
+                - area: "Area型のエリア情報"
+                - genres: "Genre型のリスト"
+                - budget: "BudgetRange型の予算範囲"
+                - partySize: "人数"
+                - hasPrivateRoom: "個室の有無"
+                - smokingType: "SmokingType列挙型"
+                - hasFreedrink: "飲み放題の有無"
+                - openNow: "現在営業中"
+                - lateNight: "深夜営業"
+              methods:
+                - toApiParameters: "APIリクエストパラメータに変換"
+                - fromForm: "検索フォームの入力値からインスタンスを生成"
+
+            area.dart:
+              content: "エリア情報のマスターデータモデル"
+              dependency: []
+              properties:
+                - code: "エリアコード"
+                - name: "エリア名"
+              methods:
+                - fromJson: "JSONからモデルを生成"
+
+            genre.dart:
+              content: "ジャンル情報のマスターデータモデル"
+              dependency: []
+              properties:
+                - code: "ジャンルコード"
+                - name: "ジャンル名"
+              methods:
+                - fromJson: "JSONからモデルを生成"
+
+            photo.dart:
+              content: "店舗写真情報のモデル（モバイル用）"
+              dependency: []
+              properties:
+                - url: "写真URL（モバイル用）"
+              methods:
+                - fromJson: "JSONからモデルを生成"
+
         services:
           store_service.dart:
             content: |
@@ -72,11 +121,17 @@ src:
               - lib/api/hotpepper_api.dart
               - lib/models/venue.dart
               - lib/models/location.dart
+              - lib/models/hotpepper/search_params.dart
               - lib/services/location_service.dart
               - lib/config/env.dart
             methods:
               - searchByKeyword: "キーワードによる店舗検索"
-              - searchByFilters: "詳細条件による店舗検索"
+              - searchByFilters: |
+                "詳細条件による店舗検索
+                - SearchParamsモデルを受け取り
+                - APIパラメータに変換
+                - 検索結果をVenueモデルに変換
+                - 位置情報に基づくソート"
               - getShopDetail: "店舗の詳細情報取得"
               - sortVenues: "検索結果のソート（距離順）"
               - _convertSmoking: "喫煙状況の条件をAPIパラメータに変換"
@@ -210,8 +265,20 @@ src:
               - 喫煙（ラジオボタン、指定なし・喫煙可・禁煙）
               - オプション（チェックボックス、飲み放題・個室）
               - 営業時間（ラジオボタン、指定なし・今営業中・深夜営業あり）
-              - 予算（レンジスライダー、2,000円〜10,000円以上）"
-            dependency: []
+              - 予算（レンジスライダ��、2,000円〜10,000円以上）
+              - バリデーション機能"
+            dependency:
+              - lib/models/hotpepper/search_params.dart
+            methods:
+              - _buildAreaInput: "エリア入力セクションの構築"
+              - _buildPartySizeSelector: "人数選択セクションの構築"
+              - _buildSmokingOptions: "喫煙オプションセクションの構築"
+              - _buildAdditionalOptions: "追加オプションセクションの構築"
+              - _buildOpeningHoursFilter: "営業時間フィルターの構築"
+              - _buildBudgetRangeSlider: "予算範囲スライダーの構築"
+              - getSearchParams: "入力された検索条件をSearchParamsとして取得"
+              - setSearchParams: "SearchParamsから検索条件を設定"
+              - validate: "入力値のバリデーション"
 
           store_card.dart:
             content: "店舗情報を表示するカードウィジェット（店名、カテゴリ、住所、写真）"

@@ -1,6 +1,9 @@
 import '../api/hotpepper_api.dart';
 import '../models/venue.dart';
 import '../models/location.dart';
+import '../models/hotpepper/search_params.dart';
+import '../models/hotpepper/area.dart';
+import '../models/hotpepper/genre.dart';
 import '../services/location_service.dart';
 import '../config/env.dart';
 
@@ -24,46 +27,27 @@ class StoreService {
   }
 
   /// 詳細条件で店舗を検索
-  Future<List<Venue>> searchByFilters({
-    String? keyword,
-    String? area,
-    List<String>? genres,
-    int? personCount,
-    String? smoking,
-    bool? hasNomihodai,
-    bool? hasPrivateRoom,
-    String? businessHours,
-    double? budgetMin,
-    double? budgetMax,
-  }) async {
+  Future<List<Venue>> searchByFilters(SearchParams params) async {
     try {
-      // 予算コードの変換
-      String? budgetCode;
-      if (budgetMin != null || budgetMax != null) {
-        budgetCode = _convertBudget({
-          'min': budgetMin?.toInt() ?? 0,
-          'max': budgetMax?.toInt() ?? 999999,
-        });
+      final apiParams = params.toApiParameters();
+
+      // エリアが指定されていない場合のみ、現在位置を使用
+      if (params.area == null) {
+        try {
+          final currentLocation = await _locationService.getCurrentLocation();
+          if (currentLocation != null) {
+            apiParams['lat'] = currentLocation.latitude.toString();
+            apiParams['lng'] = currentLocation.longitude.toString();
+            // デフォルトの検索範囲を設定（3km）
+            apiParams['range'] = '5';
+          }
+        } catch (e) {
+          print('位置情報の取得をスキップしました: $e');
+        }
       }
 
-      // 営業時間の変換
-      final openCode = businessHours != null ? _convertOpen(businessHours) : null;
-
-      // 喫煙状況の変換
-      final smokingCode = smoking != null ? _convertSmoking(smoking) : null;
-
       // APIを呼び出して検索を実行
-      return await _hotpepperApi.searchByFilters(
-        keyword: keyword?.trim(),
-        area: area?.trim(),
-        genres: genres,
-        partyCapacity: personCount,
-        smoking: smokingCode,
-        freeDrink: hasNomihodai,
-        privateRoom: hasPrivateRoom,
-        open: openCode,
-        budget: budgetCode,
-      );
+      return await _hotpepperApi.searchByFilters(params: apiParams);
     } catch (e) {
       throw StoreServiceException('詳細検索中にエラーが発生しました: $e');
     }
@@ -82,34 +66,39 @@ class StoreService {
   Future<List<Venue>> searchNearbyStores({
     double? radius,
     String? keyword,
-    List<String>? genres,
+    List<Genre>? genres,
   }) async {
     try {
       // 現在位置を取得
       final currentLocation = await _locationService.getCurrentLocation();
-      
-      // 位置情報を含めて検索
-      final venues = await _hotpepperApi.searchByFilters(
-        keyword: keyword,
-        genres: genres,
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-        range: _convertRadiusToRange(radius ?? 3000), // デフォルト3km
-      );
-
-      if (radius == null) {
-        return venues;
+      if (currentLocation == null) {
+        throw StoreServiceException('現在位置を取得できませんでした');
       }
 
-      // APIの検索範囲は概算なので、正確な距離で再フィルタリング
-      return _filterByDistance(venues, currentLocation, radius);
+      // 検索パラメータの構築
+      final params = SearchParams(
+        keyword: keyword,
+        genres: genres ?? [],
+      ).toApiParameters();
+
+      params['lat'] = currentLocation.latitude.toString();
+      params['lng'] = currentLocation.longitude.toString();
+      params['range'] = _convertRadiusToRange(radius ?? 3000); // デフォルト3km
+
+      // 検索実行
+      final venues = await _hotpepperApi.searchByFilters(params: params);
+
+      // 正確な距離でィルタリング（必要な場合）
+      return radius != null
+          ? await _filterByDistance(venues, currentLocation, radius)
+          : venues;
     } catch (e) {
-      throw StoreServiceException('店舗の検索中にエラーが発生しました: $e');
+      throw StoreServiceException('周辺店舗の検索中にエラーが発生しました: $e');
     }
   }
 
-  /// ジャンルマスタ情報の取得
-  Future<List<Map<String, String>>> getGenres() async {
+  /// ジャンル一覧の取得
+  Future<List<Genre>> getGenres() async {
     try {
       return await _hotpepperApi.getGenres();
     } catch (e) {
@@ -117,8 +106,8 @@ class StoreService {
     }
   }
 
-  /// エリアマスタ情報の取得
-  Future<List<Map<String, String>>> getAreas() async {
+  /// エリア一覧の取得
+  Future<List<Area>> getAreas() async {
     try {
       return await _hotpepperApi.getAreas();
     } catch (e) {
@@ -127,19 +116,11 @@ class StoreService {
   }
 
   /// 検索結果を距離順にソート
-  Future<List<Venue>> sortVenues(List<Venue> venues, String sortBy) async {
-    switch (sortBy) {
-      case 'distance':
-        return _sortByDistance(venues);
-      default:
-        return venues;  // デフォルトはAPIの順序を維持
-    }
-  }
-
-  /// 距離でソート
   Future<List<Venue>> _sortByDistance(List<Venue> venues) async {
     try {
       final currentLocation = await _locationService.getCurrentLocation();
+      if (currentLocation == null) return venues;
+
       final venuesWithDistance = await Future.wait(
         venues.map((venue) async {
           final distance = await _locationService.calculateDistance(
@@ -159,7 +140,11 @@ class StoreService {
   }
 
   /// 距離でフィルタリング
-  Future<List<Venue>> _filterByDistance(List<Venue> venues, Location currentLocation, double radius) async {
+  Future<List<Venue>> _filterByDistance(
+    List<Venue> venues,
+    Location currentLocation,
+    double radius,
+  ) async {
     final filteredVenues = await Future.wait(
       venues.map((venue) async {
         final distance = await _locationService.calculateDistance(
@@ -184,44 +169,6 @@ class StoreService {
     if (radiusInMeters <= 2000) return '4';
     if (radiusInMeters <= 3000) return '5';
     return '5'; // 最大3000m
-  }
-
-  /// 喫煙状況をAPIパラメータに変換
-  String _convertSmoking(String value) {
-    switch (value) {
-      case '喫煙可':
-        return '1';
-      case '禁煙':
-        return '3';
-      default:
-        return '0';  // 指定なし
-    }
-  }
-
-  /// 営業時間をAPIパラメータに変換
-  String _convertOpen(String value) {
-    switch (value) {
-      case '今営業中':
-        return 'now';
-      case '深夜営業あり':
-        return 'late';
-      default:
-        return '';  // 指定なし
-    }
-  }
-
-  /// 予算をAPIパラメータに変換
-  String _convertBudget(Map<String, int> budget) {
-    final min = budget['min'] ?? 0;
-    final max = budget['max'] ?? 999999;
-
-    if (max <= 2000) return 'B009';  // 〜2000円
-    if (max <= 3000) return 'B010';  // 2001〜3000円
-    if (max <= 4000) return 'B011';  // 3001〜4000円
-    if (max <= 5000) return 'B001';  // 4001〜5000円
-    if (max <= 7000) return 'B002';  // 5001〜7000円
-    if (max <= 10000) return 'B003'; // 7001〜10000円
-    return 'B008';                   // 10001円〜
   }
 }
 
