@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/store_card.dart';
 import '../models/venue.dart';
 import '../models/hotpepper/search_params.dart';
+import '../models/hotpepper/izakaya_category.dart';
 import 'store_detail_screen.dart';
 
 class SearchResultScreen extends StatelessWidget {
@@ -47,8 +48,8 @@ class SearchResultScreen extends StatelessWidget {
             Text('エリア: ${searchParams.area!.name}'),
             const SizedBox(height: 4),
           ],
-          if (searchParams.genres.isNotEmpty) ...[
-            Text('ジャンル: ${searchParams.genres.map((g) => g.name).join(', ')}'),
+          if (searchParams.categories.isNotEmpty) ...[
+            Text('カテゴリ: ${searchParams.categories.map((c) => c.name).join(', ')}'),
             const SizedBox(height: 4),
           ],
           if (searchParams.budget != null) ...[
@@ -92,7 +93,7 @@ class SearchResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyResult() {
+  Widget _buildEmptyResult(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -119,7 +120,7 @@ class SearchResultScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           OutlinedButton(
-            onPressed: () => Navigator.pop,
+            onPressed: () => Navigator.pop(context),
             child: const Text('検索条件を変更'),
           ),
         ],
@@ -139,7 +140,7 @@ class SearchResultScreen extends StatelessWidget {
           _buildSearchConditions(),
           Expanded(
             child: venues.isEmpty
-                ? _buildEmptyResult()
+                ? _buildEmptyResult(context)
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: venues.length,

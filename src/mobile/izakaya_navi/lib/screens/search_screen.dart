@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import '../models/hotpepper/izakaya_category.dart';
 import '../models/hotpepper/search_params.dart';
 import '../models/hotpepper/area.dart';
-import '../models/hotpepper/genre.dart';
-import '../models/venue.dart';
 import '../services/store_service.dart';
 import '../services/location_service.dart';
-import '../widgets/search_filter.dart';
 import '../widgets/category_buttons.dart';
-import 'search_result_screen.dart';
+import '../widgets/search_filter.dart';
+import '../models/venue.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({Key? key}) : super(key: key);
@@ -17,166 +16,188 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final StoreService _storeService = StoreService(
-    locationService: LocationService(),
-  );
-
-  List<Genre> _genres = [];
-  List<Area> _areas = [];
-  List<Genre> _selectedGenres = [];
+  final _keywordController = TextEditingController();
+  final List<IzakayaCategory> _selectedCategories = [];
   bool _isLoading = false;
   String? _errorMessage;
-  late SearchFilter _searchFilter;
+
+  // 検索フィルター用の状態
+  Area? _selectedArea;
+  BudgetRange? _budgetRange;
+  int? _partySize;
+  bool? _hasPrivateRoom;
+  SmokingType? _smokingType;
+  bool? _hasFreedrink;
+  bool? _openNow;
+  bool? _lateNight;
 
   @override
-  void initState() {
-    super.initState();
-    _loadMasterData();
+  void dispose() {
+    _keywordController.dispose();
+    super.dispose();
   }
 
-  // マスターデータの読み込み
-  Future<void> _loadMasterData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final futures = await Future.wait([
-        _storeService.getGenres(),
-        _storeService.getAreas(),
-      ]);
-
-      setState(() {
-        _genres = futures[0] as List<Genre>;
-        _areas = futures[1] as List<Area>;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'データの読み込みに失敗しました: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  // 検索の実行
-  Future<void> _handleSearch(SearchParams params) async {
-    // 選択されたジャンルを検索パラメータに追加
-    final updatedParams = SearchParams.fromForm(
-      keyword: params.keyword,
-      area: params.area,
-      genres: [..._selectedGenres, ...params.genres].toSet().toList(),  // 両方のジャンルを結合
-      budgetMin: params.budget?.min,
-      budgetMax: params.budget?.max,
-      partySize: params.partySize,
-      hasPrivateRoom: params.hasPrivateRoom,
-      smokingType: params.smokingType,
-      hasFreedrink: params.hasFreedrink,
-      openNow: params.openNow,
-      lateNight: params.lateNight,
-    );
+  Future<void> _search() async {
+    if (_isLoading) return;
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
-      final venues = await _storeService.searchByFilters(updatedParams);
-      if (!mounted) return;
-
-      // 検索結果画面に遷移
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SearchResultScreen(
-            venues: venues,
-            searchParams: updatedParams,  // 検索パラメータを渡す
-          ),
-        ),
+      final params = SearchParams(
+        keyword: _keywordController.text,
+        categories: _selectedCategories,
       );
-    } catch (e) {
-      setState(() {
-        _errorMessage = '検索中にエラーが発生しました: $e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
 
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+      // StoreServiceのインスタンスを取得（依存性注入の実装に応じて変更）
+      final storeService = StoreService(
+        locationService: LocationService(),
+      );
+
+      final results = await storeService.searchByFilters(params);
+
+      if (mounted) {
+        Navigator.pushNamed(
+          context,
+          '/search_results',
+          arguments: {
+            'venues': results,
+            'searchParams': params,
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('検索中にエラーが発生しました: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (_errorMessage != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadMasterData,
-                child: const Text('再読み込み'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('詳細検索'),
+        title: const Text('居酒屋を探す'),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // カテゴリ選択
-              CategoryButtons(
-                genres: _genres,
-                onSelectionChanged: (selected) {
-                  setState(() {
-                    _selectedGenres = selected;
-                  });
-                },
+      body: _errorMessage != null && _isLoading
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _search,
+                    child: const Text('再読み込み'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              // 検索フィルター
-              SearchFilter(
-                genres: _genres,
-                areas: _areas,
-                onSearch: _handleSearch,
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // キーワード検索フィールド
+                  TextField(
+                    controller: _keywordController,
+                    decoration: const InputDecoration(
+                      labelText: 'キーワード',
+                      hintText: '店名、料理名など',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // カテゴリ選択セクション
+                  const Text(
+                    'カテゴリ',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  IzakayaCategoryButtons(
+                    selectedCategories: _selectedCategories,
+                    onCategoriesChanged: (categories) {
+                      setState(() {
+                        _selectedCategories
+                          ..clear()
+                          ..addAll(categories);
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 詳細検索フィルター
+                  SearchFilter(
+                    selectedArea: _selectedArea,
+                    onAreaChanged: (area) {
+                      setState(() => _selectedArea = area);
+                    },
+                    budgetRange: _budgetRange,
+                    onBudgetChanged: (budget) {
+                      setState(() => _budgetRange = budget);
+                    },
+                    partySize: _partySize,
+                    onPartySizeChanged: (size) {
+                      setState(() => _partySize = size);
+                    },
+                    hasPrivateRoom: _hasPrivateRoom,
+                    onPrivateRoomChanged: (value) {
+                      setState(() => _hasPrivateRoom = value);
+                    },
+                    smokingType: _smokingType,
+                    onSmokingTypeChanged: (type) {
+                      setState(() => _smokingType = type);
+                    },
+                    hasFreedrink: _hasFreedrink,
+                    onFreedrinkChanged: (value) {
+                      setState(() => _hasFreedrink = value);
+                    },
+                    openNow: _openNow,
+                    onOpenNowChanged: (value) {
+                      setState(() => _openNow = value);
+                    },
+                    lateNight: _lateNight,
+                    onLateNightChanged: (value) {
+                      setState(() => _lateNight = value);
+                    },
+                  ),
+                  const SizedBox(height: 32),
+
+                  // 検索ボタン
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _search,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            '検索',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

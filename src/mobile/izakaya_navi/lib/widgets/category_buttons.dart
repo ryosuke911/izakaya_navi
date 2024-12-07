@@ -1,45 +1,52 @@
 import 'package:flutter/material.dart';
-import '../models/hotpepper/genre.dart';
+import '../models/hotpepper/izakaya_category.dart';
 
-class CategoryButtons extends StatefulWidget {
-  final List<Genre> genres;
-  final Function(List<Genre>) onSelectionChanged;
+class IzakayaCategoryButtons extends StatelessWidget {
+  final List<IzakayaCategory> selectedCategories;
+  final Function(List<IzakayaCategory>) onCategoriesChanged;
 
-  const CategoryButtons({
+  const IzakayaCategoryButtons({
     Key? key,
-    required this.genres,
-    required this.onSelectionChanged,
+    required this.selectedCategories,
+    required this.onCategoriesChanged,
   }) : super(key: key);
-
-  @override
-  State<CategoryButtons> createState() => _CategoryButtonsState();
-}
-
-class _CategoryButtonsState extends State<CategoryButtons> {
-  final Set<Genre> _selectedGenres = {};
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: widget.genres.map((genre) {
-        final isSelected = _selectedGenres.contains(genre);
+      spacing: 8.0,
+      runSpacing: 8.0,
+      children: IzakayaCategory.values.map((category) {
+        final isSelected = selectedCategories.contains(category);
         return FilterChip(
-          label: Text(genre.name),
+          avatar: Icon(
+            category.icon,
+            color: isSelected ? Colors.white : Theme.of(context).primaryColor,
+          ),
+          label: Text(
+            category.name,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black87,
+            ),
+          ),
           selected: isSelected,
+          selectedColor: Theme.of(context).primaryColor,
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
           onSelected: (selected) {
-            setState(() {
-              if (selected) {
-                _selectedGenres.add(genre);
-              } else {
-                _selectedGenres.remove(genre);
-              }
-              widget.onSelectionChanged(_selectedGenres.toList());
-            });
+            final newCategories = List<IzakayaCategory>.from(selectedCategories);
+            if (selected) {
+              newCategories.add(category);
+            } else {
+              newCategories.remove(category);
+            }
+            onCategoriesChanged(newCategories);
           },
-          selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
-          checkmarkColor: Theme.of(context).primaryColor,
         );
       }).toList(),
     );

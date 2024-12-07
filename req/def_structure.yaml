@@ -28,27 +28,6 @@ src:
             shop.dart:
               content: "ホットペッパーAPIのレスポンス用モデル"
               dependency: []
-              properties:
-                - id: "店舗ID"
-                - name: "店舗名"
-                - address: "住所"
-                - lat: "緯度"
-                - lng: "経度"
-                - access: "アクセス情報"
-                - open: "営業時間"
-                - close: "定休日"
-                - photo: "店舗写真情報"
-                - genre: "ジャンル情報"
-                - budget: "予算情報"
-                - capacity: "総席数"
-                - party_capacity: "収容人数"
-                - wifi: "Wi-Fi有無"
-                - private_room: "個室有無"
-                - smoking: "喫煙情報"
-                - free_drink: "飲み放題有無"
-              methods:
-                - fromJson: "JSONからモデルを生成"
-                - toVenue: "Venueモデルへの変換"
 
             search_params.dart:
               content: |
@@ -58,58 +37,36 @@ src:
               dependency:
                 - lib/models/hotpepper/area.dart
                 - lib/models/hotpepper/genre.dart
-              properties:
-                - keyword: "検索キーワード"
-                - area: "Area型のエリア情報"
-                - genres: "Genre型のリスト"
-                - budget: "BudgetRange型の予算範囲"
-                - partySize: "人数"
-                - hasPrivateRoom: "個室の有無"
-                - smokingType: "SmokingType列挙型"
-                - hasFreedrink: "飲み放題の有無"
-                - openNow: "現在営業中"
-                - lateNight: "深夜営業"
-              methods:
-                - toApiParameters: "APIリクエストパラメータに変換"
-                - fromForm: "検索フォームの入力値からインスタンスを生成"
 
             area.dart:
               content: "エリア情報のマスターデータモデル"
               dependency: []
-              properties:
-                - code: "エリアコード"
-                - name: "エリア名"
-              methods:
-                - fromJson: "JSONからモデルを生成"
 
             genre.dart:
               content: "ジャンル情報のマスターデータモデル"
               dependency: []
-              properties:
-                - code: "ジャンルコード"
-                - name: "ジャンル名"
-              methods:
-                - fromJson: "JSONからモデルを生成"
 
             photo.dart:
               content: "店舗写真情報のモデル（モバイル用）"
               dependency: []
-              properties:
-                - url: "写真URL（モバイル用）"
-              methods:
-                - fromJson: "JSONからモデルを生成"
+
+            izakaya_category.dart:
+              content: |
+                "アプリ独自の居酒屋サブカテゴリを定義するenumモデル
+                - 居酒屋に特化した詳細�テゴリ（日本酒、焼酎、刺身など）
+                - カテゴリごとの検索キーワード管理
+                - UI表示用のメタデータ（アイコン、表示名）"
+              dependency: []
 
         services:
           store_service.dart:
             content: |
               "ホットペッパーAPIを利用した店舗情報の取得・検索・管理サービス
               - 基本機能
-                - キーワードによる店舗検索（ホットペッパーAPI）
-                - 詳細条件による店舗検索（ホットペッパーAPI）
-                - 店舗詳細情報の取得（ホットペッパーAPI）
-              - 詳細検索機能
-                - エリア・駅名による検索
-                - カテゴリによるフィルタリング（複数選択対応）
+                - 常にジャンルコードG001（居酒屋）で検索
+                - キーワードによる店舗検索
+                - カテゴリによる詳細検索
+                - 店舗詳細情報の取得"
                 - 詳細条件によるフィルタリング
                   - 人数での絞り込み（party_capacity）
                   - 喫煙状況での絞り込み（smoking）
@@ -122,22 +79,9 @@ src:
               - lib/models/venue.dart
               - lib/models/location.dart
               - lib/models/hotpepper/search_params.dart
+              - lib/models/hotpepper/izakaya_category.dart
               - lib/services/location_service.dart
               - lib/config/env.dart
-            methods:
-              - searchByKeyword: "キーワードによる店舗検索"
-              - searchByFilters: |
-                "詳細条件による店舗検索
-                - SearchParamsモデルを受け取り
-                - APIパラメータに変換
-                - 検索結果をVenueモデルに変換
-                - 位置情報に基づくソート"
-              - getShopDetail: "店舗の詳細情報取得"
-              - sortVenues: "検索結果のソート（距離順）"
-              - _convertSmoking: "喫煙状況の条件をAPIパラメータに変換"
-              - _convertOpen: "営業時間の条件をAPIパラメータに変換"
-              - _convertBudget: "予算範囲をAPIパラメータに変換"
-              - _convertGenres: "選択されたカテゴリをAPIパラメータに変換"
 
           auth_service.dart:
             content: "Supabase認証機能の実装"
@@ -165,22 +109,6 @@ src:
               - lib/models/location.dart
               - lib/models/hotpepper/shop.dart
               - package:http/http.dart
-            methods:
-              - searchByKeyword: "キーワードによる店舗検索"
-              - searchByFilters: |
-                "詳細条件による店舗検索
-                - エリア・駅名をベースに検索
-                - 以下の条件でフィルタリング
-                  - keyword（キーワード）
-                  - area（エリア）
-                  - genre（ジャンル）
-                  - budget（予算）
-                  - party_capacity（収容人数）
-                  - private_room（個室）
-                  - smoking（喫煙）
-                  - free_drink（飲み放題）
-                  - open（営業時間）"
-              - getShopDetail: "店舗の詳細情報を取得"
 
         screens:
           home_screen.dart:
@@ -219,10 +147,7 @@ src:
               - lib/screens/search_result_screen.dart
               - lib/services/store_service.dart
               - lib/services/location_service.dart
-            methods:
-              - _handleSearch: "検索条件を元に検索を実行し、結果画面に遷移"
-              - _showError: "エラーメッセージをSnackBarで表示"
-
+          
           search_result_screen.dart:
             content: "検索結果の店舗リストと地図表示、表示切替機能（リスト表示がデフォルト）"
             dependency:
@@ -265,7 +190,7 @@ src:
               - 喫煙（ラジオボタン、指定なし・喫煙可・禁煙）
               - オプション（チェックボックス、飲み放題・個室）
               - 営業時間（ラジオボタン、指定なし・今営業中・深夜営業あり）
-              - 予算（レンジスライダ��、2,000円〜10,000円以上）
+              - 予算（レンジスライダー、2,000円〜10,000円以上）
               - バリデーション機能"
             dependency:
               - lib/models/hotpepper/search_params.dart
@@ -308,13 +233,12 @@ src:
 
           category_buttons.dart:
             content: |
-              "カテゴリ選択ボタンのグリッド
-              - 複数選択可能
-              - アイコンと名称の表示
-              - 選択状態の視覚的フィードバック
-              - ホットペッパーAPIのジャンルに対応"
+              "居酒屋カテゴリ選択用のカスタムウィジェット
+              - カテゴリの複数選択UI
+              - 選択状態の管理
+              - アイコンと名称の表示"
             dependency:
-              - lib/models/hotpepper/genre.dart
+              - lib/models/hotpepper/izakaya_category.dart
 
         backend:
           supabase:

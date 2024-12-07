@@ -3,11 +3,12 @@ import '../models/venue.dart';
 import '../models/location.dart';
 import '../models/hotpepper/search_params.dart';
 import '../models/hotpepper/area.dart';
-import '../models/hotpepper/genre.dart';
+import '../models/hotpepper/izakaya_category.dart';
 import '../services/location_service.dart';
 import '../config/env.dart';
 
 class StoreService {
+  static const String IZAKAYA_GENRE_CODE = 'G001';
   final HotpepperApi _hotpepperApi;
   final LocationService _locationService;
 
@@ -17,19 +18,26 @@ class StoreService {
   })  : _hotpepperApi = hotpepperApi ?? HotpepperApi(),
         _locationService = locationService;
 
-  /// キーワードで店舗を検索
+  /// キーワードで店舗を検索（常に居酒屋ジャンルで検索）
   Future<List<Venue>> searchByKeyword(String keyword) async {
     try {
-      return await _hotpepperApi.searchByKeyword(keyword.trim());
+      final params = {
+        'keyword': keyword.trim(),
+        'genre': IZAKAYA_GENRE_CODE,
+      };
+      return await _hotpepperApi.searchByFilters(params: params);
     } catch (e) {
       throw StoreServiceException('キーワード検索中にエラーが発生しました: $e');
     }
   }
 
-  /// 詳細条件で店舗を検索
+  /// 詳細条件で店舗を検索（常に居酒屋ジャンルで検索）
   Future<List<Venue>> searchByFilters(SearchParams params) async {
     try {
       final apiParams = params.toApiParameters();
+      
+      // 常に居酒屋ジャ��ルを指定
+      apiParams['genre'] = IZAKAYA_GENRE_CODE;
 
       // エリアが指定されていない場合のみ、現在位置を使用
       if (params.area == null) {
@@ -47,10 +55,17 @@ class StoreService {
       }
 
       // APIを呼び出して検索を実行
-      return await _hotpepperApi.searchByFilters(params: apiParams);
+      final venues = await _hotpepperApi.searchByFilters(params: apiParams);
+      return await _sortByDistance(venues);
     } catch (e) {
       throw StoreServiceException('詳細検索中にエラーが発生しました: $e');
     }
+  }
+
+  /// カテゴリによる検索
+  Future<List<Venue>> searchByCategories(List<IzakayaCategory> categories) async {
+    final params = SearchParams(categories: categories);
+    return searchByFilters(params);
   }
 
   /// 店舗の詳細情報を取得
@@ -66,7 +81,7 @@ class StoreService {
   Future<List<Venue>> searchNearbyStores({
     double? radius,
     String? keyword,
-    List<Genre>? genres,
+    List<IzakayaCategory>? categories,
   }) async {
     try {
       // 現在位置を取得
@@ -78,31 +93,23 @@ class StoreService {
       // 検索パラメータの構築
       final params = SearchParams(
         keyword: keyword,
-        genres: genres ?? [],
+        categories: categories ?? [],
       ).toApiParameters();
 
       params['lat'] = currentLocation.latitude.toString();
       params['lng'] = currentLocation.longitude.toString();
       params['range'] = _convertRadiusToRange(radius ?? 3000); // デフォルト3km
+      params['genre'] = IZAKAYA_GENRE_CODE;
 
       // 検索実行
       final venues = await _hotpepperApi.searchByFilters(params: params);
 
-      // 正確な距離でィルタリング（必要な場合）
+      // 正確な距離でフィルタリング（必要な場合）
       return radius != null
           ? await _filterByDistance(venues, currentLocation, radius)
           : venues;
     } catch (e) {
-      throw StoreServiceException('周辺店舗の検索中にエラーが発生しました: $e');
-    }
-  }
-
-  /// ジャンル一覧の取得
-  Future<List<Genre>> getGenres() async {
-    try {
-      return await _hotpepperApi.getGenres();
-    } catch (e) {
-      throw StoreServiceException('ジャンル情報の取得中にエラーが発生しました: $e');
+      throw StoreServiceException('周辺店舗の検索中にエラー��発生しました: $e');
     }
   }
 

@@ -1,14 +1,19 @@
-/// ジャンル情報のマスターデータモデル
+/// ホットペッパーAPIの�ャンルマスターデータモデル
 class Genre {
   final String code;
   final String name;
 
-  Genre({
+  const Genre({
     required this.code,
     required this.name,
   });
 
-  /// JSONからモデルを生成
+  /// 居酒屋ジャンル（アプリ内で使用するメインジャンル）
+  static const IZAKAYA = Genre(
+    code: 'G001',
+    name: '居酒屋',
+  );
+
   factory Genre.fromJson(Map<String, dynamic> json) {
     return Genre(
       code: json['code'] as String,
@@ -17,13 +22,16 @@ class Genre {
   }
 
   @override
-  String toString() => name;
-
-  @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Genre && runtimeType == other.runtimeType && code == other.code;
+      other is Genre &&
+          runtimeType == other.runtimeType &&
+          code == other.code &&
+          name == other.name;
 
   @override
-  int get hashCode => code.hashCode;
+  int get hashCode => code.hashCode ^ name.hashCode;
+
+  @override
+  String toString() => 'Genre(code: $code, name: $name)';
 } 

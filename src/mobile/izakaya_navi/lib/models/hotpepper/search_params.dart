@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'area.dart';
-import 'genre.dart';
+import 'izakaya_category.dart';
 
 /// 詳細検索条件のパラメータモデル
 class SearchParams {
   final String? keyword;
   final Area? area;
-  final List<Genre> genres;
+  final List<IzakayaCategory> categories;
   final BudgetRange? budget;
   final int? partySize;
   final bool? hasPrivateRoom;
@@ -18,7 +18,7 @@ class SearchParams {
   SearchParams({
     this.keyword,
     this.area,
-    this.genres = const [],
+    this.categories = const [],
     this.budget,
     this.partySize,
     this.hasPrivateRoom,
@@ -32,7 +32,7 @@ class SearchParams {
   factory SearchParams.fromForm({
     String? keyword,
     Area? area,
-    List<Genre> genres = const [],
+    List<IzakayaCategory> categories = const [],
     int? budgetMin,
     int? budgetMax,
     int? partySize,
@@ -45,7 +45,7 @@ class SearchParams {
     return SearchParams(
       keyword: keyword,
       area: area,
-      genres: genres,
+      categories: categories,
       budget: (budgetMin != null || budgetMax != null)
           ? BudgetRange(min: budgetMin, max: budgetMax)
           : null,
@@ -62,16 +62,23 @@ class SearchParams {
   Map<String, dynamic> toApiParameters() {
     final params = <String, dynamic>{};
 
+    // キーワードとカテゴリのキーワードを結合
+    final keywords = <String>[];
     if (keyword?.isNotEmpty ?? false) {
-      params['keyword'] = keyword;
+      keywords.add(keyword!);
+    }
+    
+    // 選択されたカテゴリのキーワードを追加
+    for (final category in categories) {
+      keywords.addAll(category.keywords);
+    }
+    
+    if (keywords.isNotEmpty) {
+      params['keyword'] = keywords.join(' ');
     }
 
     if (area != null) {
       params['small_area'] = area!.code;
-    }
-
-    if (genres.isNotEmpty) {
-      params['genre'] = genres.map((g) => g.code).join(',');
     }
 
     if (budget != null) {
@@ -126,7 +133,7 @@ class SearchParams {
     return jsonEncode({
       'keyword': keyword,
       'area': area?.code,
-      'genres': genres.map((g) => g.code).toList(),
+      'categories': categories.map((c) => c.id).toList(),
       'budget': budget?.toString(),
       'partySize': partySize,
       'hasPrivateRoom': hasPrivateRoom,
