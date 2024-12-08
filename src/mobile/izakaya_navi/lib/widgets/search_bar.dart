@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 
 class CustomSearchBar extends StatefulWidget {
-  final Function(String) onSearch;
   final String hintText;
+  final Function(String) onSearch;
 
   const CustomSearchBar({
-    super.key,
+    Key? key,
+    required this.hintText,
     required this.onSearch,
-    this.hintText = '駅・エリアで検索',
-  });
+  }) : super(key: key);
 
   @override
   State<CustomSearchBar> createState() => _CustomSearchBarState();
 }
 
 class _CustomSearchBarState extends State<CustomSearchBar> {
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
   bool _isEditing = false;
 
   @override

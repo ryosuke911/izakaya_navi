@@ -41,7 +41,7 @@ class StoreCard extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // 店舗名と評価
                     Row(
@@ -80,7 +80,7 @@ class StoreCard extends StatelessWidget {
                         ],
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     
                     // カテゴリタグ
                     if (venue.genres.isNotEmpty)

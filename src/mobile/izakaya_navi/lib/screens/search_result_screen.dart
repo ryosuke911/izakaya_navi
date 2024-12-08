@@ -3,6 +3,7 @@ import '../widgets/store_card.dart';
 import '../models/venue.dart';
 import '../models/hotpepper/search_params.dart';
 import '../models/hotpepper/izakaya_category.dart';
+import '../models/hotpepper/area.dart';
 import 'store_detail_screen.dart';
 
 class SearchResultScreen extends StatelessWidget {
@@ -45,7 +46,19 @@ class SearchResultScreen extends StatelessWidget {
             const SizedBox(height: 4),
           ],
           if (searchParams.area != null) ...[
-            Text('エリア: ${searchParams.area!.name}'),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('エリア: ${searchParams.area!.name}'),
+                Text(
+                  searchParams.area!.nameKana ?? '',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
           ],
           if (searchParams.categories.isNotEmpty) ...[

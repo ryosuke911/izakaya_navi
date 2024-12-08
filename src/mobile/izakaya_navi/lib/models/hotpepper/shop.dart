@@ -1,5 +1,6 @@
 import '../venue.dart';
 import '../location.dart';
+import 'area.dart';
 
 class Shop {
   final String id;
@@ -41,10 +42,12 @@ class Shop {
   factory Shop.fromJson(Map<String, dynamic> json) {
     final photo = json['photo'] as Map<String, dynamic>?;
     final photoUrls = <String>[];
-    if (photo != null && photo['pc'] != null) {
-      final pc = photo['pc'] as Map<String, dynamic>;
-      if (pc['l'] != null) {
-        photoUrls.add(pc['l'] as String);
+    if (photo != null && photo['mobile'] != null) {
+      final mobile = photo['mobile'] as Map<String, dynamic>;
+      if (mobile['l'] != null) {
+        final photoUrl = mobile['l'] as String;
+        final convertedUrl = photoUrl.replaceFirst('https://160.17.98.51', 'https://imgfp.hotp.jp');
+        photoUrls.add(convertedUrl);
       }
     }
 
@@ -103,6 +106,7 @@ class Shop {
       close: closeTime,
       photos: photos,
       address: address,
+      area: rawJson['middle_area'] != null ? MiddleArea.fromJson(rawJson['middle_area'] as Map<String, dynamic>) : null,
       additionalDetails: {
         ...rawJson,
         if (capacity != null) 'party_capacity': capacity,

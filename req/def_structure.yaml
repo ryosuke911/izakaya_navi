@@ -33,14 +33,27 @@ src:
               content: |
                 "詳細検索条件のパラメータモデル
                 - 検索条件の型安全な管理
-                - APIパラメータへの変換ロジック"
+                - APIパラメータへの変換ロ��ック"
               dependency:
                 - lib/models/hotpepper/area.dart
                 - lib/models/hotpepper/genre.dart
 
             area.dart:
-              content: "エリア情報のマスターデータモデル"
-              dependency: []
+              content: |
+                "中エリア情報のマスターデータモデル
+                - 中エリアの基本情報管理
+                  - 中エリアコード
+                  - 中エリア名（漢字）
+                  - 中エリア名よみがな（漢字から自動生成）
+                - 検索用メソッド
+                  - 前方一致検索（漢字・よみがな）
+                  - japanese_text_utilitiesを使用した漢字→ひらがな変換
+                  - 検索時の文字種正規化（全角→半角、カタカナ→ひらがな）
+                - インメモリデータ構造の最適化
+                  - 効率的な検索のためのデータ構造
+                  - メモリ使用量の最適化"
+              dependency:
+                - package:japanese_text_utilities/japanese_text_utilities.dart
 
             genre.dart:
               content: "ジャンル情報のマスターデータモデル"
@@ -53,7 +66,7 @@ src:
             izakaya_category.dart:
               content: |
                 "アプリ独自の居酒屋サブカテゴリを定義するenumモデル
-                - 居酒屋に特化した詳細�テゴリ（日本酒、焼酎、刺身など）
+                - 居酒屋に特化した詳細テゴリ（日本酒、焼酎、刺身など）
                 - カテゴリごとの検索キーワード管理
                 - UI表示用のメタデータ（アイコン、表示名）"
               dependency: []
@@ -66,19 +79,32 @@ src:
                 - 常にジャンルコードG001（居酒屋）で検索
                 - キーワードによる店舗検索
                 - カテゴリによる詳細検索
-                - 店舗詳細情報の取得"
+                - 店舗詳細情報の取得
                 - 詳細条件によるフィルタリング
                   - 人数での絞り込み（party_capacity）
                   - 喫煙状況での絞り込み（smoking）
                   - オプション（飲み放題、個室）での絞り込み
                   - 営業時間での絞り込み（open）
                   - 予算範囲での絞り込み（budget）
-                - 検索結果のソート機能（距離順）"
+                - 検索結果のソート機能（距離順）
+              - エリア関連機能
+                - 中エリア（middle_area）のインメモリ管理
+                  - アプリ起動時に中エリアマスタデータを取得
+                  - List<MiddleArea>としてメモリ内で保持
+                  - 中エリアのみを対象とした効率的な検索
+                - エリアサジェスト検索
+                  - インメモリの中エリアデータに対する前方一致検索
+                  - 入力文字種に応じた検索（漢字→name, ひらがな→nameKana）
+                  - デバウンス処理による検索最適化
+                - エリアベースの店舗検索
+                  - 選択された中エリアコードでの店舗API検索
+                  - 検索パラメータの最適化"
             dependency:
               - lib/api/hotpepper_api.dart
               - lib/models/venue.dart
               - lib/models/location.dart
               - lib/models/hotpepper/search_params.dart
+              - lib/models/hotpepper/area.dart
               - lib/models/hotpepper/izakaya_category.dart
               - lib/services/location_service.dart
               - lib/config/env.dart
@@ -102,7 +128,20 @@ src:
 
         api:
           hotpepper_api.dart:
-            content: "ホットペッパーAPIクライアント"
+            content: |
+              "ホットペッパーAPIクライアント
+              - エリア情報の取得と管理
+                - middle_area/v1/エンドポイントの実装
+                - 起動時の中エリアマスタデータ取得
+                  - 中エリア一覧の取得（middle_area/v1）
+                  - 中エリア情報の構造化（コード、名前、よみがな）
+              - 店舗検索機能
+                - 中エリアコードによる検索
+                - その他の検索条件との組み合わせ
+              - キャッシュ戦略
+                - 検索結果のメモリキャッシュ
+                - 1時間の有効期限
+                - エラー時の自動無効化"
             dependency:
               - lib/config/env.dart
               - lib/models/venue.dart
@@ -127,20 +166,15 @@ src:
               "詳細検索画面の実装
               - 画面構成
                 - カテゴリ選択（複数選択可能）
-                - 詳細条件
-                  - エリア・駅名入力
-                  - 人数選択（1〜8人）
-                  - 喫煙（指定なし・喫煙可・禁煙）
-                  - オプション（飲み放題・個室）
-                  - 営業時間（指定なし・今営業中・深夜営業あり）
-                  - 予算（2,000円〜10,000円以上の範囲指定）
+                - エリア入力（テキストフィールド）
+                - 予算範囲（スライダー形式、0円〜50,000円）
+                - 人数選択（1〜8人）
+                - こだわり条件
+                  - 個室あり
+                  - 喫煙可
+                  - 飲み放題あり
+                  - 深夜営業
                 - 検索ボタン
-              - 機能
-                - 検索条件の収集と保持
-                - StoreServiceを使用した検索の実行
-                - 検索中のローディング表示
-                - エラー時のエラーメッセージ表示
-                - 検索結果をSearchResultScreenに渡して画面遷移"
             dependency:
               - lib/widgets/search_filter.dart
               - lib/widgets/category_buttons.dart
@@ -185,43 +219,40 @@ src:
             content: |
               "詳細検索条件のフィルターウィジェット
               - 統一されたセクションデザイン
-              - エリア・駅名入力（テキストフィールド）
+              - カテゴリ選択（複数選択可能なチップ形式）
+              - エリア入力
+                - オートコンプリート機能付きテキストフィールド
+                - APIベースのサジェスト機能
+                  - キーワードによるリアルタイム検索
+                  - 漢字/ひらがな入力対応
+                - 選択されたエリアの状態管理
+                  - 中エリア/小エリアの選択状態
+                  - 表示形式の管理
+              - 予算範囲（スライダー形式、0円〜10,000円）
+                - デフォルト値: 3,000円〜8,000円
+                - 現在の選択値を表示
               - 人数選択（ドロップダウン、1〜8人）
-              - 喫煙（ラジオボタン、指定なし・喫煙可・禁煙）
-              - オプション（チェックボックス、飲み放題・個室）
-              - 営業時間（ラジオボタン、指定なし・今営業中・深夜営業あり）
-              - 予算（レンジスライダー、2,000円〜10,000円以上）
+              - こだわり条件（チェックボックス）
+                - 個室あり
+                - 喫煙可
+                - 飲み放題あり
+                - 深夜営業
               - バリデーション機能"
             dependency:
               - lib/models/hotpepper/search_params.dart
-            methods:
-              - _buildAreaInput: "エリア入力セクションの構築"
-              - _buildPartySizeSelector: "人数選択セクションの構築"
-              - _buildSmokingOptions: "喫煙オプションセクションの構築"
-              - _buildAdditionalOptions: "追加オプションセクションの構築"
-              - _buildOpeningHoursFilter: "営業時間フィルターの構築"
-              - _buildBudgetRangeSlider: "予算範囲スライダーの構築"
-              - getSearchParams: "入力された検索条件をSearchParamsとして取得"
-              - setSearchParams: "SearchParamsから検索条件を設定"
-              - validate: "入力値のバリデーション"
-
+              - lib/models/hotpepper/area.dart
+              - lib/services/store_service.dart
+          
           store_card.dart:
             content: "店舗情報を表示するカードウィジェット（店名、カテゴリ、住所、写真）"
             dependency:
               - lib/models/venue.dart
               - lib/widgets/store_gallery.dart
-            methods:
-              - build: "カードウィジェットの構築"
-              - buildImage: "店舗写真の表示（StoreGalleryを使用）"
-              - buildInfo: "店舗情報の表示（店名、カテゴリ）"
 
           store_gallery.dart:
             content: "店舗画像のスワイプ可能なギャラリー（写真の取得と表示を担当）"
             dependency:
               - lib/models/venue.dart
-            methods:
-              - loadPhotos: "写真の非同期読み込み"
-              - buildPhotoView: "写真表示用のウィジェットを構築"
 
           auth_form.dart:
             content: "認証フォームのカスタムウィジェット"

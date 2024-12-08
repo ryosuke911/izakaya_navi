@@ -7,6 +7,7 @@ import '../services/location_service.dart';
 import 'search_screen.dart';
 import 'search_result_screen.dart';
 import '../models/hotpepper/search_params.dart';
+import '../models/hotpepper/area.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,20 +19,29 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final StoreService _storeService;
   bool _isSearching = false;
+  List<MiddleArea> _suggestedAreas = [];
 
   @override
   void initState() {
     super.initState();
     _storeService = StoreService(locationService: LocationService());
+    _initializeAreas();
+  }
+
+  Future<void> _initializeAreas() async {
+    try {
+      await _storeService.initialize();
+      print('エリアデータの初期化が完了しました');
+    } catch (e) {
+      print('エリアデータの初期化に失敗しました: $e');
+    }
   }
 
   Future<void> _handleSearch(String query) async {
     if (query.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('検索キーワードを入力してください'),
-          ),
+          const SnackBar(content: Text('検索キーワードを入力してください')),
         );
       }
       return;
@@ -39,20 +49,60 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _isSearching = true;
+      _suggestedAreas = [];
     });
 
     try {
       print('Searching for: $query');
-      final venues = await _storeService.searchByKeyword(query.trim());
-      print('Found ${venues.length} venues');
-
+      // エリアのサジェストを取得（ローカル検索）
+      _suggestedAreas = await _storeService.suggestAreas(query);
+      
       if (!mounted) return;
 
+      if (_suggestedAreas.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('該当するエリアが見つかりませんでした')),
+        );
+        return;
+      }
+
+      setState(() {}); // サジェスト結果を表示
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('検索中にエラーが発生しました: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    }
+  }
+
+  void _onAreaSelected(MiddleArea area) {
+    setState(() {
+      _suggestedAreas = []; // サジェストをクリア
+    });
+    _searchByArea(area);
+  }
+
+  Future<void> _searchByArea(MiddleArea area) async {
+    setState(() {
+      _isSearching = true;
+    });
+
+    try {
+      final searchParams = SearchParams(area: area);
+      final venues = await _storeService.searchByFilters(searchParams);
+      
+      if (!mounted) return;
+      
       if (venues.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('検索結果が見つかりませんでした'),
-          ),
+          const SnackBar(content: Text('このエリアの店舗が見つかりませんでした')),
         );
         return;
       }
@@ -62,16 +112,14 @@ class _HomeScreenState extends State<HomeScreen> {
         MaterialPageRoute(
           builder: (context) => SearchResultScreen(
             venues: venues,
-            searchParams: SearchParams(keyword: query),
+            searchParams: searchParams,
           ),
         ),
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('検索中にエラーが発生しました: $e'),
-          ),
+          SnackBar(content: Text('検索中にエラーが発生しました: $e')),
         );
       }
     } finally {
@@ -119,8 +167,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     // エリア検索バー
                     CustomSearchBar(
+                      hintText: 'エリア名で検索（例：渋谷）',
                       onSearch: _handleSearch,
                     ),
+                    if (_suggestedAreas.isNotEmpty)
+                      Card(
+                        margin: const EdgeInsets.only(top: 8),
+                        elevation: 4,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: _suggestedAreas.map((area) => ListTile(
+                            leading: const Icon(Icons.location_city),
+                            title: Text(area.name),
+                            dense: true,
+                            onTap: () => _onAreaSelected(area),
+                          )).toList(),
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     
                     // 検索ボタン
@@ -184,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const Expanded(
                       child: Center(
-                        child: Text('おすすめ店舗は準備中です'),
+                        child: Text('おすすめ店��は準備中です'),
                       ),
                     ),
                   ],

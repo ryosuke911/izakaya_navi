@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:mockito/annotations.dart';
 import 'package:izakaya_navi/api/hotpepper_api.dart';
 import 'package:izakaya_navi/models/venue.dart';
+import 'package:izakaya_navi/models/hotpepper/area.dart';
 import 'hotpepper_api_test.mocks.dart';
 
 @GenerateMocks([http.Client])
@@ -18,22 +19,55 @@ void main() {
       api = HotpepperApi(apiKey: 'test_api_key', client: mockClient);
     });
 
-    test('searchByKeyword returns list of venues', () async {
-      const keyword = '新宿 居酒屋';
+    test('getMiddleAreas returns list of middle areas', () async {
+      final response = {
+        'results': {
+          'middle_area': [
+            {
+              'code': 'MA001',
+              'name': '渋谷',
+            },
+            {
+              'code': 'MA002',
+              'name': '新宿',
+            }
+          ]
+        }
+      };
+
+      when(mockClient.get(any)).thenAnswer(
+        (_) async => http.Response.bytes(utf8.encode(jsonEncode(response)), 200),
+      );
+
+      final areaList = await api.getMiddleAreas();
+      
+      expect(areaList, isA<MiddleAreaList>());
+      expect(areaList.areas.length, 2);
+      expect(areaList.areas.first.name, '渋谷');
+      expect(areaList.areas.first.code, 'MA001');
+    });
+
+    test('searchByArea returns list of venues', () async {
+      const areaCode = 'MA001';
       final response = {
         'results': {
           'shop': [
             {
               'id': 'J001234567',
               'name': 'テスト居酒屋',
-              'address': '東京都新宿区西新宿1-1-1',
-              'lat': '35.689722',
-              'lng': '139.700278',
+              'address': '東京都渋谷区道玄坂1-1-1',
+              'lat': '35.658034',
+              'lng': '139.701636',
               'genre': {'name': '居酒屋'},
               'budget': {'name': '3000円〜4000円'},
               'photo': {'pc': {'l': 'http://example.com/photo.jpg'}},
+              'middle_area': {
+                'code': 'MA001',
+                'name': '渋谷',
+              }
             }
-          ]
+          ],
+          'results_available': 1
         }
       };
 
@@ -41,84 +75,14 @@ void main() {
         (_) async => http.Response.bytes(utf8.encode(jsonEncode(response)), 200),
       );
 
-      final venues = await api.searchByKeyword(keyword);
+      final venues = await api.searchByArea(areaCode);
       
       expect(venues, isA<List<Venue>>());
       expect(venues.length, 1);
       expect(venues.first.name, 'テスト居酒屋');
-      expect(venues.first.placeId, 'J001234567');
-    });
-
-    test('searchByFilters applies all filters correctly', () async {
-      final response = {
-        'results': {
-          'shop': [
-            {
-              'id': 'J001234567',
-              'name': 'フィルターテスト居酒屋',
-              'address': '東京都新宿区西新宿1-1-1',
-              'lat': '35.689722',
-              'lng': '139.700278',
-              'genre': {'name': '居酒屋'},
-              'budget': {'name': '3000円〜4000円'},
-              'smoking': '禁煙',
-              'party_capacity': '10〜20名',
-              'private_room': 'あり',
-              'free_drink': 'あり',
-            }
-          ]
-        }
-      };
-
-      when(mockClient.get(any)).thenAnswer(
-        (_) async => http.Response.bytes(utf8.encode(jsonEncode(response)), 200),
-      );
-
-      final venues = await api.searchByFilters(
-        area: '新宿',
-        partyCapacity: 15,
-        smoking: '3',  // 禁煙
-        privateRoom: true,
-        freeDrink: true,
-        budget: 'B011',  // 3001〜4000円
-      );
-
-      expect(venues, isA<List<Venue>>());
-      expect(venues.length, 1);
-      expect(venues.first.name, 'フィルターテスト居酒屋');
-      expect(venues.first.placeId, 'J001234567');
-    });
-
-    test('getShopDetail returns venue details', () async {
-      const shopId = 'J001234567';
-      final response = {
-        'results': {
-          'shop': [
-            {
-              'id': shopId,
-              'name': '詳細テスト居酒屋',
-              'address': '東京都新宿区西新宿1-1-1',
-              'lat': '35.689722',
-              'lng': '139.700278',
-              'genre': {'name': '居酒屋'},
-              'budget': {'name': '3000円〜4000円'},
-              'open': '17:00〜23:00',
-              'close': '日曜日',
-            }
-          ]
-        }
-      };
-
-      when(mockClient.get(any)).thenAnswer(
-        (_) async => http.Response.bytes(utf8.encode(jsonEncode(response)), 200),
-      );
-
-      final venue = await api.getShopDetail(shopId);
-      
-      expect(venue, isNotNull);
-      expect(venue?.placeId, shopId);
-      expect(venue?.name, '詳細テスト居酒屋');
-      expect(venue?.openingHours?.weekdayText?.first, '17:00〜23:00');
+      expect(venues.first.id, 'J001234567');
+      expect(venues.first.area?.code, 'MA001');
+      expect(venues.first.area?.name, '渋谷');
     });
 
     test('handles API error gracefully', () async {
@@ -127,9 +91,25 @@ void main() {
       );
 
       expect(
-        () => api.searchByKeyword('test'),
-        throwsException,
+        () => api.getMiddleAreas(),
+        throwsA(isA<HotpepperApiException>()),
       );
+    });
+
+    test('handles empty results correctly', () async {
+      final response = {
+        'results': {
+          'shop': null,
+          'results_available': 0
+        }
+      };
+
+      when(mockClient.get(any)).thenAnswer(
+        (_) async => http.Response.bytes(utf8.encode(jsonEncode(response)), 200),
+      );
+
+      final venues = await api.searchByArea('MA001');
+      expect(venues, isEmpty);
     });
   });
 } 

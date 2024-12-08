@@ -48,19 +48,6 @@ class StoreDetailScreen extends StatelessWidget {
             expandedHeight: 200,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              title: Hero(
-                tag: 'store_${venue.id}',
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: Text(
-                    venue.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
               background: StoreGallery(venue: venue),
             ),
             actions: [
@@ -86,6 +73,23 @@ class StoreDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 店舗名
+                  Hero(
+                    tag: 'store_${venue.id}',
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: Text(
+                        venue.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
                   // 評価情報
                   if (venue.rating != null)
                     Row(
@@ -113,7 +117,21 @@ class StoreDetailScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // カャンル
+                  // カリア情報
+                  if (venue.area != null) ...[
+                    const Text(
+                      'エリア',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(venue.area!.name),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // ジャンル
                   if (venue.genres.isNotEmpty) ...[
                     const Text(
                       'ジャンル',

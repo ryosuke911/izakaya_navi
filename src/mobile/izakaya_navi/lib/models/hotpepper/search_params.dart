@@ -5,17 +5,18 @@ import 'izakaya_category.dart';
 /// 詳細検索条件のパラメータモデル
 class SearchParams {
   final String? keyword;
-  final Area? area;
+  final MiddleArea? area;
   final List<IzakayaCategory> categories;
   final BudgetRange? budget;
   final int? partySize;
   final bool? hasPrivateRoom;
   final SmokingType? smokingType;
   final bool? hasFreedrink;
-  final bool? openNow;
   final bool? lateNight;
+  final bool? openNow;
+  final bool useCurrentLocation;
 
-  SearchParams({
+  const SearchParams({
     this.keyword,
     this.area,
     this.categories = const [],
@@ -24,77 +25,60 @@ class SearchParams {
     this.hasPrivateRoom,
     this.smokingType,
     this.hasFreedrink,
-    this.openNow,
     this.lateNight,
+    this.openNow,
+    this.useCurrentLocation = false,
   });
 
-  /// 検索フォームの入力値からインスタンスを生成
-  factory SearchParams.fromForm({
-    String? keyword,
-    Area? area,
-    List<IzakayaCategory> categories = const [],
-    int? budgetMin,
-    int? budgetMax,
-    int? partySize,
-    bool? hasPrivateRoom,
-    SmokingType? smokingType,
-    bool? hasFreedrink,
-    bool? openNow,
-    bool? lateNight,
-  }) {
-    return SearchParams(
-      keyword: keyword,
-      area: area,
-      categories: categories,
-      budget: (budgetMin != null || budgetMax != null)
-          ? BudgetRange(min: budgetMin, max: budgetMax)
-          : null,
-      partySize: partySize,
-      hasPrivateRoom: hasPrivateRoom,
-      smokingType: smokingType,
-      hasFreedrink: hasFreedrink,
-      openNow: openNow,
-      lateNight: lateNight,
-    );
-  }
+  String? get areaCode => area?.code;
 
-  /// APIリクエストパラメータに変換
-  Map<String, dynamic> toApiParameters() {
-    final params = <String, dynamic>{};
+  Map<String, String> toQueryParameters() {
+    final params = <String, String>{};
 
-    // キーワードとカテゴリのキーワードを結合
-    final keywords = <String>[];
-    if (keyword?.isNotEmpty ?? false) {
-      keywords.add(keyword!);
-    }
+    // 常に居酒屋ジャンルを指定
+    params['genre'] = 'G001';
+
+    // カーワードとカテゴリのキーワードを組み合わせる
+    final List<String> searchKeywords = [];
     
-    // 選択されたカテゴリのキーワードを追加
-    for (final category in categories) {
-      keywords.addAll(category.keywords);
+    // ユーザーが入力したキーワードがあれば追加
+    if (keyword != null && keyword!.isNotEmpty) {
+      searchKeywords.add(keyword!);
     }
-    
-    if (keywords.isNotEmpty) {
-      params['keyword'] = keywords.join(' ');
+
+    // カテゴリのキーワードを追加
+    if (categories.isNotEmpty) {
+      final categoryKeywords = categories
+          .expand((category) => category.keywords)
+          .join(' ');
+      if (categoryKeywords.isNotEmpty) {
+        searchKeywords.add(categoryKeywords);
+      }
+    }
+
+    // 検索キーワードがあれば設定
+    if (searchKeywords.isNotEmpty) {
+      params['keyword'] = searchKeywords.join(' ');
     }
 
     if (area != null) {
-      params['small_area'] = area!.code;
+      params['middle_area'] = area!.code;
     }
 
     if (budget != null) {
       if (budget!.min != null) {
-        params['budget_from'] = budget!.min.toString();
+        params['budget_min'] = budget!.min.toString();
       }
       if (budget!.max != null) {
-        params['budget_to'] = budget!.max.toString();
+        params['budget_max'] = budget!.max.toString();
       }
     }
 
-    if (partySize != null && partySize! > 0) {
+    if (partySize != null) {
       params['party_capacity'] = partySize.toString();
     }
 
-    if (hasPrivateRoom != null && hasPrivateRoom!) {
+    if (hasPrivateRoom == true) {
       params['private_room'] = '1';
     }
 
@@ -102,16 +86,16 @@ class SearchParams {
       params['smoking'] = _convertSmokingType(smokingType!);
     }
 
-    if (hasFreedrink != null && hasFreedrink!) {
+    if (hasFreedrink == true) {
       params['free_drink'] = '1';
     }
 
-    if (openNow != null && openNow!) {
-      params['open_now'] = '1';
+    if (lateNight == true) {
+      params['midnight'] = '1';
     }
 
-    if (lateNight != null && lateNight!) {
-      params['midnight'] = '1';
+    if (openNow == true) {
+      params['open_now'] = '1';
     }
 
     return params;
@@ -128,6 +112,10 @@ class SearchParams {
     }
   }
 
+  Map<String, String> toApiParameters() {
+    return toQueryParameters();
+  }
+
   @override
   String toString() {
     return jsonEncode({
@@ -141,6 +129,7 @@ class SearchParams {
       'hasFreedrink': hasFreedrink,
       'openNow': openNow,
       'lateNight': lateNight,
+      'useCurrentLocation': useCurrentLocation,
     });
   }
 }

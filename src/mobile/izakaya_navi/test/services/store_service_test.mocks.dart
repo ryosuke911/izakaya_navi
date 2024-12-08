@@ -5,8 +5,10 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i4;
 
+import 'package:geolocator/geolocator.dart' as _i7;
 import 'package:izakaya_navi/api/hotpepper_api.dart' as _i3;
-import 'package:izakaya_navi/models/location.dart' as _i2;
+import 'package:izakaya_navi/models/hotpepper/area.dart' as _i2;
+import 'package:izakaya_navi/models/location.dart' as _i8;
 import 'package:izakaya_navi/models/venue.dart' as _i5;
 import 'package:izakaya_navi/services/location_service.dart' as _i6;
 import 'package:mockito/mockito.dart' as _i1;
@@ -24,8 +26,9 @@ import 'package:mockito/mockito.dart' as _i1;
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
 
-class _FakeLocation_0 extends _i1.SmartFake implements _i2.Location {
-  _FakeLocation_0(
+class _FakeMiddleAreaList_0 extends _i1.SmartFake
+    implements _i2.MiddleAreaList {
+  _FakeMiddleAreaList_0(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -43,84 +46,42 @@ class MockHotpepperApi extends _i1.Mock implements _i3.HotpepperApi {
   }
 
   @override
-  _i4.Future<List<_i5.Venue>> searchByKeyword(String? keyword) =>
-      (super.noSuchMethod(
+  _i4.Future<_i2.MiddleAreaList> getMiddleAreas() => (super.noSuchMethod(
         Invocation.method(
-          #searchByKeyword,
-          [keyword],
+          #getMiddleAreas,
+          [],
         ),
-        returnValue: _i4.Future<List<_i5.Venue>>.value(<_i5.Venue>[]),
-      ) as _i4.Future<List<_i5.Venue>>);
+        returnValue: _i4.Future<_i2.MiddleAreaList>.value(_FakeMiddleAreaList_0(
+          this,
+          Invocation.method(
+            #getMiddleAreas,
+            [],
+          ),
+        )),
+      ) as _i4.Future<_i2.MiddleAreaList>);
 
   @override
-  _i4.Future<List<_i5.Venue>> searchByFilters({
-    String? keyword,
-    String? name,
-    String? address,
-    String? area,
-    List<String>? genres,
-    int? partyCapacity,
-    String? smoking,
-    bool? privateRoom,
-    bool? freeDrink,
-    String? open,
-    String? budget,
-    double? latitude,
-    double? longitude,
-    String? range,
+  _i4.Future<List<_i5.Venue>> searchByArea(
+    String? areaCode, {
+    Map<String, String>? additionalParams,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
-          #searchByFilters,
-          [],
-          {
-            #keyword: keyword,
-            #name: name,
-            #address: address,
-            #area: area,
-            #genres: genres,
-            #partyCapacity: partyCapacity,
-            #smoking: smoking,
-            #privateRoom: privateRoom,
-            #freeDrink: freeDrink,
-            #open: open,
-            #budget: budget,
-            #latitude: latitude,
-            #longitude: longitude,
-            #range: range,
-          },
+          #searchByArea,
+          [areaCode],
+          {#additionalParams: additionalParams},
         ),
         returnValue: _i4.Future<List<_i5.Venue>>.value(<_i5.Venue>[]),
       ) as _i4.Future<List<_i5.Venue>>);
 
   @override
-  _i4.Future<_i5.Venue?> getShopDetail(String? id) => (super.noSuchMethod(
+  void dispose() => super.noSuchMethod(
         Invocation.method(
-          #getShopDetail,
-          [id],
-        ),
-        returnValue: _i4.Future<_i5.Venue?>.value(),
-      ) as _i4.Future<_i5.Venue?>);
-
-  @override
-  _i4.Future<List<Map<String, String>>> getGenres() => (super.noSuchMethod(
-        Invocation.method(
-          #getGenres,
+          #dispose,
           [],
         ),
-        returnValue: _i4.Future<List<Map<String, String>>>.value(
-            <Map<String, String>>[]),
-      ) as _i4.Future<List<Map<String, String>>>);
-
-  @override
-  _i4.Future<List<Map<String, String>>> getAreas() => (super.noSuchMethod(
-        Invocation.method(
-          #getAreas,
-          [],
-        ),
-        returnValue: _i4.Future<List<Map<String, String>>>.value(
-            <Map<String, String>>[]),
-      ) as _i4.Future<List<Map<String, String>>>);
+        returnValueForMissingStub: null,
+      );
 }
 
 /// A class which mocks [LocationService].
@@ -132,31 +93,34 @@ class MockLocationService extends _i1.Mock implements _i6.LocationService {
   }
 
   @override
-  _i4.Future<_i2.Location> getCurrentLocation() => (super.noSuchMethod(
+  _i4.Future<_i7.Position?> getCurrentPosition() => (super.noSuchMethod(
+        Invocation.method(
+          #getCurrentPosition,
+          [],
+        ),
+        returnValue: _i4.Future<_i7.Position?>.value(),
+      ) as _i4.Future<_i7.Position?>);
+
+  @override
+  _i4.Future<_i8.Location?> getCurrentLocation() => (super.noSuchMethod(
         Invocation.method(
           #getCurrentLocation,
           [],
         ),
-        returnValue: _i4.Future<_i2.Location>.value(_FakeLocation_0(
-          this,
-          Invocation.method(
-            #getCurrentLocation,
-            [],
-          ),
-        )),
-      ) as _i4.Future<_i2.Location>);
+        returnValue: _i4.Future<_i8.Location?>.value(),
+      ) as _i4.Future<_i8.Location?>);
 
   @override
   _i4.Future<double> calculateDistance(
-    _i2.Location? start,
-    _i2.Location? end,
+    _i8.Location? from,
+    _i8.Location? to,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
           #calculateDistance,
           [
-            start,
-            end,
+            from,
+            to,
           ],
         ),
         returnValue: _i4.Future<double>.value(0.0),
